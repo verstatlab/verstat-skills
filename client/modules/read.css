@@ -1,0 +1,10 @@
+.vs-read { display: inline-flex; gap: 10px; align-items: center; font-family: var(--vs-mono); font-size: 12px; color: var(--vs-muted); }
+.vs-read-reset { font: inherit; padding: 2px 8px; background: transparent; color: var(--vs-ink); border: 1px solid var(--vs-rule-strong); border-radius: var(--vs-r); cursor: pointer; }
+.vs-read-reset:hover { border-color: var(--vs-accent); }
+.vs-read-reset[aria-hidden="true"] { visibility: hidden; }
+.vs-read-box { display: flex; align-items: center; padding: 0 12px 0 8px; background: transparent; border: none; color: inherit; cursor: pointer; }
+.vs-read-box > span { width: 15px; height: 15px; box-sizing: border-box; border-radius: 4px; border: 1.5px solid var(--vs-rule-strong); display: flex; align-items: center; justify-content: center; }
+.vs-read-box svg { width: 11px; height: 11px; fill: none; stroke: var(--vs-bg); stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round; visibility: hidden; }
+.vs-read-box[aria-pressed="true"] > span { background: var(--vs-add); border-color: var(--vs-add); }
+.vs-read-box[aria-pressed="true"] svg { visibility: visible; }
+.vs-read-line { margin: -12px 0 20px; }

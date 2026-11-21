@@ -1,0 +1,125 @@
+{
+  "schema": "verstat.page/1",
+  "skill": "explain-pr",
+  "question": "What does the PR “Refund after shipping” change?",
+  "repos": {
+    "shop": {
+      "sha": "0000000",
+      "path": "."
+    },
+    "shop@base": {
+      "sha": "0000000",
+      "path": "."
+    }
+  },
+  "blocks": [
+    {
+      "id": "answer",
+      "type": "brief",
+      "answer": "The PR lets shipped orders be refunded and removes the paid → pending transition.",
+      "pr": {
+        "title": "Refund after shipping",
+        "head": "feature/refund-shipped",
+        "base": "main",
+        "additions": 42,
+        "deletions": 17,
+        "files": 3,
+        "commits": 2
+      },
+      "numbers": [
+        {
+          "value": 3,
+          "label": "files"
+        },
+        {
+          "value": "+42 / −17",
+          "label": "lines"
+        },
+        {
+          "value": 1,
+          "label": "new transition",
+          "accent": true
+        }
+      ]
+    },
+    {
+      "id": "states",
+      "type": "fixture-diff",
+      "title": "Order transitions",
+      "subtitle": "A test block for the changes mode.",
+      "rows": [
+        {
+          "id": "t-pay",
+          "from": "pending",
+          "to": "paid",
+          "label": "markPaid",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/orders/order.js",
+            "find": "function markPaid(order, payment) {"
+          }
+        },
+        {
+          "id": "t-ship",
+          "from": "paid",
+          "to": "shipped",
+          "label": "ship",
+          "change": "changed",
+          "before": {
+            "label": "send",
+            "anchor": {
+              "repo": "shop@base",
+              "path": "src/orders/order.js",
+              "find": "function ship(order) {"
+            }
+          },
+          "anchor": {
+            "repo": "shop",
+            "path": "src/orders/order.js",
+            "find": "function ship(order) {"
+          }
+        },
+        {
+          "id": "t-refund",
+          "from": "shipped",
+          "to": "refunded",
+          "label": "refund",
+          "change": "added"
+        },
+        {
+          "id": "t-back",
+          "from": "paid",
+          "to": "pending",
+          "label": "reopen",
+          "change": "removed",
+          "anchor": {
+            "repo": "shop@base",
+            "path": "src/orders/order.js",
+            "find": "function createOrder(items) {"
+          }
+        }
+      ]
+    }
+  ],
+  "route": [
+    {
+      "block": "answer",
+      "minutes": 1,
+      "why": "The gist of the PR.",
+      "modes": [
+        "short",
+        "full"
+      ]
+    },
+    {
+      "block": "states",
+      "focus": "t-refund",
+      "minutes": 2,
+      "why": "What changed in the transitions.",
+      "modes": [
+        "short",
+        "full"
+      ]
+    }
+  ]
+}

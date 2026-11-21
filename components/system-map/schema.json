@@ -1,0 +1,80 @@
+{
+  "title": "system-map",
+  "description": "The system around the question: services, stores, external APIs, queues and the links between them, drawn as a graph. The map has up to three levels of detail (system → service → module); each level carries its own node and link list, and a switch above the map shows one level at a time. Repo groups are drawn as frames; nodes and frames can be dragged, clicking a node opens its first anchor. Not rendered when no level has a node.",
+  "type": "object",
+  "required": ["id", "type", "levels"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "type": { "const": "system-map" },
+    "title": { "type": "string", "description": "Heading of the block (h2)." },
+    "subtitle": { "type": "string", "description": "One line under the heading." },
+    "level": { "enum": ["system", "service", "module"], "description": "The level shown first; defaults to the first level in `levels`." },
+    "groups": {
+      "type": "array",
+      "description": "Repo groups: nodes that live in one repository are framed together.",
+      "items": {
+        "type": "object",
+        "required": ["id", "label"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "minLength": 1, "description": "Part id, shared with node ids; a route step can focus the frame." },
+          "label": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "levels": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 3,
+      "description": "One entry per level of detail, each level at most once (a repeated level is not shown). Node and link ids are parts and must be unique across the whole block, so the same service shown on two levels needs two ids (`orders`, `orders-svc`).",
+      "items": {
+        "type": "object",
+        "required": ["level", "nodes"],
+        "additionalProperties": false,
+        "properties": {
+          "level": { "enum": ["system", "service", "module"] },
+          "nodes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "label", "kind"],
+              "additionalProperties": false,
+              "properties": {
+                "id": { "type": "string", "minLength": 1, "description": "Part id, unique in the block; links and route steps name it." },
+                "label": { "type": "string", "minLength": 1 },
+                "kind": {
+                  "enum": ["service", "store", "external", "queue", "client", "module"],
+                  "description": "Sets the shape: store (database, cache), external (a third-party API, dashed), queue (rounded), others plain."
+                },
+                "group": { "type": "string", "minLength": 1, "description": "The `id` of a repo group; an unknown id draws the node without a frame." },
+                "note": { "type": "string", "minLength": 1 },
+                "highlight": { "type": "boolean", "description": "A node the question is about." },
+                "anchors": { "type": "array", "items": { "$ref": "verstat:page#/$defs/anchor" } },
+                "source": { "$ref": "verstat:page#/$defs/source" }
+              }
+            }
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["from", "to"],
+              "additionalProperties": false,
+              "properties": {
+                "id": { "type": "string", "minLength": 1, "description": "Part id; give one when a route step should focus the link." },
+                "from": { "type": "string", "minLength": 1, "description": "The `id` of a node of the same level; a link naming a node elsewhere is not drawn." },
+                "to": { "type": "string", "minLength": 1, "description": "The `id` of a node of the same level; a link naming a node elsewhere is not drawn." },
+                "label": { "type": "string", "minLength": 1 },
+                "kind": { "enum": ["call", "read", "write", "publish", "subscribe"], "description": "publish / subscribe are drawn dashed; the kind is listed in the node detail." },
+                "highlight": { "type": "boolean" },
+                "anchor": { "$ref": "verstat:page#/$defs/anchor" },
+                "source": { "$ref": "verstat:page#/$defs/source" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

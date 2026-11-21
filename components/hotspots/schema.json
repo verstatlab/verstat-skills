@@ -1,0 +1,47 @@
+{
+  "title": "hotspots",
+  "description": "A treemap of the files the question touches: tile area = lines of code, colour = how often the file changes (or how many people changed it). Files are grouped into columns (a folder, a package, a service). Give each file a file anchor (`{ repo, path }`): clicking its tile opens the file. The page embeds every anchored file whole, so a lock file, a generated file or a file that may hold secrets gets no anchor (its tile opens nothing). Not rendered when there are no files.",
+  "type": "object",
+  "required": ["id", "type", "groups"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "type": { "const": "hotspots" },
+    "title": { "type": "string", "description": "Heading of the block (h2)." },
+    "subtitle": { "type": "string", "description": "One line under the heading." },
+    "metric": {
+      "enum": ["changes", "authors"],
+      "description": "What the colour shows: `changes` (commits touching the file, default) or `authors` (distinct authors)."
+    },
+    "period": { "type": "string", "minLength": 1, "description": "The history window the numbers come from, e.g. “90 days”; shown in the legend." },
+    "groups": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "label", "files"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "minLength": 1, "description": "Part id, shared with file ids; a route step can focus the column." },
+          "label": { "type": "string", "minLength": 1 },
+          "files": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "path", "lines"],
+              "additionalProperties": false,
+              "properties": {
+                "id": { "type": "string", "minLength": 1, "description": "Part id, unique in the block; a route step can focus the tile." },
+                "path": { "type": "string", "minLength": 1 },
+                "lines": { "type": "integer", "minimum": 1, "description": "Lines of code; the tile's area." },
+                "changes": { "type": "integer", "minimum": 0, "description": "Commits touching the file in the period." },
+                "authors": { "type": "integer", "minimum": 0, "description": "Distinct authors in the period." },
+                "anchor": { "$ref": "verstat:page#/$defs/anchor" },
+                "note": { "type": "string", "minLength": 1 }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

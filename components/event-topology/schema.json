@@ -1,0 +1,113 @@
+{
+  "title": "event-topology",
+  "description": "Who publishes to which channel and who consumes it: one row per channel. Not rendered when `channels` is empty.",
+  "type": "object",
+  "required": [
+    "id",
+    "type",
+    "channels"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "type": {
+      "const": "event-topology"
+    },
+    "title": {
+      "type": "string",
+      "description": "Heading of the block (h2)."
+    },
+    "subtitle": {
+      "type": "string",
+      "description": "One line under the heading."
+    },
+    "channels": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "publishers",
+          "consumers"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Part id, unique in the block; a route step can focus it."
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The channel as code names it (`order.paid`)."
+          },
+          "kind": {
+            "enum": [
+              "topic",
+              "queue",
+              "webhook",
+              "file",
+              "stream",
+              "other"
+            ]
+          },
+          "how": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Delivery in a few words (`synchronously, in process`)."
+          },
+          "anchor": {
+            "$ref": "verstat:page#/$defs/anchor"
+          },
+          "source": {
+            "$ref": "verstat:page#/$defs/source"
+          },
+          "publishers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "name"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "anchor": {
+                  "$ref": "verstat:page#/$defs/anchor"
+                }
+              }
+            }
+          },
+          "consumers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "name"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "anchor": {
+                  "$ref": "verstat:page#/$defs/anchor"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

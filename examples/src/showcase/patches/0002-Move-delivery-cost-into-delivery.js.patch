@@ -1,0 +1,50 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Verstat Lab <verstatlab@gmail.com>
+Date: Mon, 12 Jan 2026 10:00:00 +0000
+Subject: [PATCH 2/3] Move delivery cost into delivery.js
+
+---
+ src/delivery.js | 7 +++++++
+ src/orders.js   | 9 ++-------
+ 2 files changed, 9 insertions(+), 7 deletions(-)
+ create mode 100644 src/delivery.js
+
+diff --git a/src/delivery.js b/src/delivery.js
+new file mode 100644
+index 0000000..95b668b
+--- /dev/null
++++ b/src/delivery.js
+@@ -0,0 +1,7 @@
++import { config } from './config.js';
++
++export function deliveryCost(order) {
++  const kg = Math.ceil(order.weightKg);
++  const cost = config.deliveryBase + kg * config.deliveryPerKg;
++  return Math.min(cost, config.maxDelivery);
++}
+diff --git a/src/orders.js b/src/orders.js
+index 7fe010a..b862f57 100644
+--- a/src/orders.js
++++ b/src/orders.js
+@@ -1,6 +1,7 @@
++import { config } from './config.js';
+ import { db, newId } from './db.js';
++import { deliveryCost } from './delivery.js';
+ import { publish } from './events.js';
+-import { config } from './config.js';
+ import { refund } from './payments.js';
+ 
+ const DAY = 24 * 60 * 60 * 1000;
+@@ -26,12 +27,6 @@ export function createOrder(customerId, items, now = Date.now()) {
+   return order;
+ }
+ 
+-export function deliveryCost(order) {
+-  const kg = Math.ceil(order.weightKg);
+-  const cost = config.deliveryBase + kg * config.deliveryPerKg;
+-  return Math.min(cost, config.maxDelivery);
+-}
+-
+ function advance(orderId, from, to, now) {
+   const order = db.orders.get(orderId);
+   if (!order) throw new Error('unknown order');

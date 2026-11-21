@@ -1,0 +1,84 @@
+{
+  "title": "config-panel",
+  "description": "Settings that change the behaviour in question: the default in code, the value per environment, what each affects. Not rendered when `params` is empty.",
+  "type": "object",
+  "required": [
+    "id",
+    "type",
+    "params"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "type": {
+      "const": "config-panel"
+    },
+    "title": {
+      "type": "string",
+      "description": "Heading of the block (h2)."
+    },
+    "subtitle": {
+      "type": "string",
+      "description": "One line under the heading."
+    },
+    "params": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "affects"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Part id, unique in the block; a route step can focus it."
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Setting name as it is set (`CHARGE_RETRIES`)."
+          },
+          "default": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Default value in code."
+          },
+          "anchor": {
+            "$ref": "verstat:page#/$defs/anchor",
+            "description": "Where the default is set."
+          },
+          "values": {
+            "type": "object",
+            "description": "Value per environment: `{ \"prod\": \"5\", \"staging\": \"3\" }`.",
+            "additionalProperties": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "affects": {
+            "type": "string",
+            "minLength": 1,
+            "description": "What changes when it changes."
+          },
+          "affectsAnchors": {
+            "type": "array",
+            "items": {
+              "$ref": "verstat:page#/$defs/anchor"
+            },
+            "description": "Where the value is used."
+          },
+          "source": {
+            "$ref": "verstat:page#/$defs/source"
+          }
+        }
+      }
+    }
+  }
+}

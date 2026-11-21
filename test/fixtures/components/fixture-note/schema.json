@@ -1,0 +1,29 @@
+{
+  "title": "fixture-note",
+  "description": "Test-only block: a short text with claims anchored in code.",
+  "type": "object",
+  "required": ["id", "type", "text"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "type": { "const": "fixture-note" },
+    "title": { "type": "string" },
+    "text": { "type": "string", "minLength": 1 },
+    "anchor": { "$ref": "verstat:page#/$defs/anchor" },
+    "claims": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "text", "anchor"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "text": { "type": "string", "minLength": 1 },
+          "symbol": { "type": "string", "description": "Text the anchored line must contain for the claim to count as a fact." },
+          "anchor": { "$ref": "verstat:page#/$defs/anchor", "x-anchor-contains": "symbol" },
+          "source": { "$ref": "verstat:page#/$defs/source" }
+        }
+      }
+    }
+  }
+}

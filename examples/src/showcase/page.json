@@ -1,0 +1,3200 @@
+{
+  "schema": "verstat.page/1",
+  "skill": "explain-pr",
+  "question": "What does the 'free delivery above an order-total threshold' change do, and how to review it?",
+  "repos": {
+    "shop": {
+      "sha": "c7c72dcf0afd580f25d145d28106b8fecdf282ac"
+    },
+    "shop@base": {
+      "sha": "6750b27dc6159ecd55c0be8d2150175d8c19285e"
+    }
+  },
+  "glossary": [
+    {
+      "term": "order",
+      "code": "order",
+      "aliases": [
+        "orders"
+      ],
+      "definition": "One purchase by one customer, from createOrder() until it is delivered or refunded.",
+      "anchor": {
+        "repo": "shop",
+        "path": "src/orders.js",
+        "find": "export function createOrder(customerId, items, now = Date.now()) {"
+      },
+      "source": "code"
+    },
+    {
+      "term": "delivery cost",
+      "code": "deliveryCost",
+      "aliases": [
+        "delivery"
+      ],
+      "definition": "What the customer pays for shipping: free from the threshold, otherwise a base price plus a price per started kilogram, capped at maxDelivery.",
+      "anchor": {
+        "repo": "shop",
+        "path": "src/delivery.js",
+        "find": "export function deliveryCost(order) {"
+      },
+      "source": "code"
+    },
+    {
+      "term": "free-delivery threshold",
+      "code": "freeDeliveryFrom",
+      "aliases": [
+        "threshold"
+      ],
+      "definition": "The order subtotal, in cents, from which delivery costs nothing.",
+      "anchor": {
+        "repo": "shop",
+        "path": "config/default.json",
+        "find": "\"freeDeliveryFrom\": 5000,"
+      },
+      "source": "code"
+    },
+    {
+      "term": "unshipped job",
+      "code": "startUnshippedJob",
+      "definition": "The interval that calls refundUnshipped every unshippedCheckMinutes.",
+      "anchor": {
+        "repo": "shop",
+        "path": "src/jobs/unshipped.js",
+        "find": "export function startUnshippedJob() {"
+      },
+      "source": "code"
+    }
+  ],
+  "blocks": [
+    {
+      "id": "brief",
+      "type": "brief",
+      "title": "Free delivery above an order-total threshold",
+      "subtitle": "A fictional shop service, written to show every block verstat can draw.",
+      "answer": "deliveryCost now returns 0 for orders whose subtotal reaches freeDeliveryFrom, and customers below it get a mail saying how much more makes delivery free. The delivery calculation was first moved, unchanged, from orders.js to its own delivery.js.",
+      "pr": {
+        "title": "Free delivery above an order-total threshold",
+        "head": "feature/free-delivery",
+        "base": "main",
+        "additions": 32,
+        "deletions": 9,
+        "files": 7,
+        "commits": 2
+      },
+      "numbers": [
+        {
+          "id": "n-real",
+          "value": 28,
+          "label": "changed lines to read",
+          "accent": true
+        },
+        {
+          "id": "n-moved",
+          "value": 4,
+          "label": "lines only moved"
+        },
+        {
+          "id": "n-noise",
+          "value": 5,
+          "label": "import lines"
+        }
+      ],
+      "facts": [
+        {
+          "id": "f-free",
+          "text": "An order whose subtotal reaches freeDeliveryFrom pays no delivery.",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/delivery.js",
+            "find": "if (order.subtotal >= config.freeDeliveryFrom) return 0;"
+          },
+          "source": "code"
+        },
+        {
+          "id": "f-hint",
+          "text": "Below the threshold the customer is mailed the missing amount.",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/notify.js",
+            "find": "subscribe('order.created',"
+          },
+          "source": "code"
+        },
+        {
+          "id": "f-conf",
+          "text": "freeDeliveryFrom is 5000 cents by default and 7500 in production.",
+          "anchor": {
+            "repo": "shop",
+            "path": "config/production.json",
+            "find": "\"freeDeliveryFrom\": 7500,"
+          },
+          "source": "code"
+        }
+      ]
+    },
+    {
+      "id": "glossary",
+      "type": "glossary",
+      "title": "Terms"
+    },
+    {
+      "id": "claims",
+      "type": "claimed-vs-done",
+      "title": "Claimed vs done",
+      "claims": [
+        {
+          "id": "cl-free",
+          "status": "found",
+          "text": "Orders from the threshold ship free.",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/delivery.js",
+            "find": "if (order.subtotal >= config.freeDeliveryFrom) return 0;"
+          }
+        },
+        {
+          "id": "cl-env",
+          "status": "found",
+          "text": "The threshold is configurable per environment.",
+          "anchor": {
+            "repo": "shop",
+            "path": "config/production.json",
+            "find": "\"freeDeliveryFrom\": 7500,"
+          }
+        },
+        {
+          "id": "cl-hint",
+          "status": "partial",
+          "text": "Customers are told how close they are to free delivery.",
+          "note": "One mail when the order is created; nothing later.",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/notify.js",
+            "find": "subscribe('order.created',"
+          }
+        },
+        {
+          "id": "cl-promo",
+          "status": "missing",
+          "text": "Staff can switch free delivery off during a promotion.",
+          "note": "No flag or override in the diff."
+        }
+      ]
+    },
+    {
+      "id": "commits",
+      "type": "commits",
+      "title": "Commits",
+      "commits": [
+        {
+          "id": "c1",
+          "sha": "6d309f2c7bb0ebb688fd38f793b16343b73013a7",
+          "parents": [
+            "6750b27dc6159ecd55c0be8d2150175d8c19285e"
+          ],
+          "message": "Move delivery cost into delivery.js",
+          "intent": "Give the delivery rule its own module before changing it.",
+          "additions": 9,
+          "deletions": 7,
+          "files": [
+            "src/delivery.js",
+            "src/orders.js"
+          ]
+        },
+        {
+          "id": "c2",
+          "sha": "c7c72dcf0afd580f25d145d28106b8fecdf282ac",
+          "parents": [
+            "6d309f2c7bb0ebb688fd38f793b16343b73013a7"
+          ],
+          "message": "Free delivery above an order-total threshold",
+          "intent": "Add the freeDeliveryFrom setting, the free branch of the rule and the hint mail.",
+          "additions": 23,
+          "deletions": 2,
+          "files": [
+            "README.md",
+            "config/default.json",
+            "config/production.json",
+            "src/delivery.js",
+            "src/notify.js",
+            "test/orders.test.js"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "map",
+      "type": "system-map",
+      "title": "The service",
+      "subtitle": "System level: who talks to the service; module level: what is inside.",
+      "level": "module",
+      "groups": [
+        {
+          "id": "g-shop",
+          "label": "shop"
+        }
+      ],
+      "levels": [
+        {
+          "level": "system",
+          "nodes": [
+            {
+              "id": "sys-customer",
+              "label": "Shop front",
+              "kind": "client",
+              "note": "Calls the HTTP API."
+            },
+            {
+              "id": "sys-shop",
+              "label": "shop service",
+              "kind": "service",
+              "highlight": true,
+              "anchors": [
+                {
+                  "repo": "shop",
+                  "path": "src/server.js",
+                  "find": "export const server = createServer(async (req, res) => {"
+                }
+              ],
+              "source": "code"
+            },
+            {
+              "id": "sys-mail",
+              "label": "Mail outbox",
+              "kind": "queue",
+              "anchors": [
+                {
+                  "repo": "shop",
+                  "path": "src/notify.js",
+                  "find": "export const outbox = [];"
+                }
+              ],
+              "source": "code"
+            }
+          ],
+          "links": [
+            {
+              "id": "sl-1",
+              "from": "sys-customer",
+              "to": "sys-shop",
+              "label": "HTTP JSON",
+              "kind": "call"
+            },
+            {
+              "id": "sl-2",
+              "from": "sys-shop",
+              "to": "sys-mail",
+              "label": "mail()",
+              "kind": "publish",
+              "anchor": {
+                "repo": "shop",
+                "path": "src/notify.js",
+                "find": "if (customer?.email) outbox.push({ to: customer.email, subject });"
+              },
+              "source": "code"
+            }
+          ]
+        },
+        {
+          "level": "module",
+          "nodes": [
+            {
+              "id": "m-server",
+              "label": "server.js",
+              "kind": "module",
+              "group": "g-shop",
+              "anchors": [
+                {
+                  "repo": "shop",
+                  "path": "src/server.js"
+                }
+              ],
+              "source": "code"
+            },
+            {
+              "id": "m-orders",
+              "label": "orders.js",
+              "kind": "module",
+              "group": "g-shop",
+              "anchors": [
+                {
+                  "repo": "shop",
+                  "path": "src/orders.js"
+                }
+              ],
+              "source": "code"
+            },
+            {
+              "id": "m-delivery",
+              "label": "delivery.js",
+              "kind": "module",
+              "group": "g-shop",
+              "highlight": true,
+              "anchors": [
+                {
+                  "repo": "shop",
+                  "path": "src/delivery.js"
+                }
+              ],
+              "source": "code"
+            },
+            {
+              "id": "m-payments",
+              "label": "payments.js",
+              "kind": "module",
+              "group": "g-shop",
+              "anchors": [
+                {
+                  "repo": "shop",
+                  "path": "src/payments.js"
+                }
+              ],
+              "source": "code"
+            },
+            {
+              "id": "m-job",
+              "label": "jobs/unshipped.js",
+              "kind": "module",
+              "group": "g-shop",
+              "anchors": [
+                {
+                  "repo": "shop",
+                  "path": "src/jobs/unshipped.js"
+                }
+              ],
+              "source": "code"
+            },
+            {
+              "id": "m-events",
+              "label": "events.js",
+              "kind": "queue",
+              "group": "g-shop",
+              "anchors": [
+                {
+                  "repo": "shop",
+                  "path": "src/events.js"
+                }
+              ],
+              "source": "code"
+            },
+            {
+              "id": "m-notify",
+              "label": "notify.js",
+              "kind": "module",
+              "group": "g-shop",
+              "highlight": true,
+              "anchors": [
+                {
+                  "repo": "shop",
+                  "path": "src/notify.js"
+                }
+              ],
+              "source": "code"
+            },
+            {
+              "id": "m-db",
+              "label": "db.js",
+              "kind": "store",
+              "group": "g-shop",
+              "anchors": [
+                {
+                  "repo": "shop",
+                  "path": "src/db.js"
+                }
+              ],
+              "source": "code"
+            }
+          ],
+          "links": [
+            {
+              "id": "ml-1",
+              "from": "m-server",
+              "to": "m-orders",
+              "label": "createOrder / pay / ship / …",
+              "kind": "call",
+              "anchor": {
+                "repo": "shop",
+                "path": "src/server.js",
+                "find": "return send(res, 201, createOrder(customerId, items));"
+              },
+              "source": "code"
+            },
+            {
+              "id": "ml-2",
+              "from": "m-orders",
+              "to": "m-delivery",
+              "label": "deliveryCost",
+              "kind": "call",
+              "highlight": true,
+              "anchor": {
+                "repo": "shop",
+                "path": "src/orders.js",
+                "find": "order.delivery = deliveryCost(order);"
+              },
+              "source": "code"
+            },
+            {
+              "id": "ml-3",
+              "from": "m-orders",
+              "to": "m-payments",
+              "label": "refund",
+              "kind": "call",
+              "anchor": {
+                "repo": "shop",
+                "path": "src/orders.js",
+                "find": "refund(order, order.total);"
+              },
+              "source": "code"
+            },
+            {
+              "id": "ml-4",
+              "from": "m-job",
+              "to": "m-orders",
+              "label": "refundUnshipped",
+              "kind": "call",
+              "anchor": {
+                "repo": "shop",
+                "path": "src/jobs/unshipped.js",
+                "find": "return setInterval(() => refundUnshipped(), config.unshippedCheckMinutes * 60 * 1000);"
+              },
+              "source": "code"
+            },
+            {
+              "id": "ml-5",
+              "from": "m-orders",
+              "to": "m-events",
+              "label": "order.*",
+              "kind": "publish",
+              "anchor": {
+                "repo": "shop",
+                "path": "src/orders.js",
+                "find": "publish('order.created', order);"
+              },
+              "source": "code"
+            },
+            {
+              "id": "ml-6",
+              "from": "m-events",
+              "to": "m-notify",
+              "label": "subscribe",
+              "kind": "subscribe",
+              "highlight": true,
+              "anchor": {
+                "repo": "shop",
+                "path": "src/notify.js",
+                "find": "subscribe('order.created',"
+              },
+              "source": "code"
+            },
+            {
+              "id": "ml-7",
+              "from": "m-orders",
+              "to": "m-db",
+              "label": "orders",
+              "kind": "write",
+              "anchor": {
+                "repo": "shop",
+                "path": "src/orders.js",
+                "find": "db.orders.set(order.id, order);"
+              },
+              "source": "code"
+            },
+            {
+              "id": "ml-8",
+              "from": "m-payments",
+              "to": "m-db",
+              "label": "refunds",
+              "kind": "write",
+              "anchor": {
+                "repo": "shop",
+                "path": "src/payments.js",
+                "find": "db.refunds.push(record);"
+              },
+              "source": "code"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "layers",
+      "type": "layers",
+      "title": "Layers",
+      "layers": [
+        {
+          "id": "ly-http",
+          "role": "HTTP",
+          "package": "src/",
+          "files": [
+            {
+              "path": "src/server.js",
+              "label": "server",
+              "anchor": {
+                "repo": "shop",
+                "path": "src/server.js"
+              }
+            }
+          ],
+          "rule": "Parses requests and maps errors to status codes; no business rules.",
+          "ruleAnchor": {
+            "repo": "shop",
+            "path": "src/server.js",
+            "find": "return send(res, 409, { error: err.message });"
+          },
+          "source": "code"
+        },
+        {
+          "id": "ly-domain",
+          "role": "domain",
+          "package": "src/",
+          "files": [
+            {
+              "path": "src/orders.js",
+              "label": "orders",
+              "anchor": {
+                "repo": "shop",
+                "path": "src/orders.js"
+              }
+            },
+            {
+              "path": "src/delivery.js",
+              "label": "delivery",
+              "anchor": {
+                "repo": "shop",
+                "path": "src/delivery.js"
+              }
+            },
+            {
+              "path": "src/payments.js",
+              "label": "payments",
+              "anchor": {
+                "repo": "shop",
+                "path": "src/payments.js"
+              }
+            },
+            {
+              "path": "src/jobs/unshipped.js",
+              "label": "jobs/unshipped",
+              "anchor": {
+                "repo": "shop",
+                "path": "src/jobs/unshipped.js"
+              }
+            }
+          ],
+          "rule": "Owns the order life cycle, the delivery rule and refunds.",
+          "highlight": true,
+          "source": "inferred"
+        },
+        {
+          "id": "ly-infra",
+          "role": "infrastructure",
+          "package": "src/",
+          "files": [
+            {
+              "path": "src/db.js",
+              "label": "db",
+              "anchor": {
+                "repo": "shop",
+                "path": "src/db.js"
+              }
+            },
+            {
+              "path": "src/events.js",
+              "label": "events",
+              "anchor": {
+                "repo": "shop",
+                "path": "src/events.js"
+              }
+            },
+            {
+              "path": "src/config.js",
+              "label": "config",
+              "anchor": {
+                "repo": "shop",
+                "path": "src/config.js"
+              }
+            },
+            {
+              "path": "src/notify.js",
+              "label": "notify",
+              "anchor": {
+                "repo": "shop",
+                "path": "src/notify.js"
+              }
+            }
+          ],
+          "rule": "Storage, the event bus, configuration and mail; imports nothing from the domain.",
+          "source": "inferred"
+        }
+      ]
+    },
+    {
+      "id": "card",
+      "type": "module-card",
+      "title": "delivery.js",
+      "path": "src/delivery.js",
+      "role": "The delivery rule: what an order pays for shipping.",
+      "summary": "One function, deliveryCost, that orders.js calls once per order. It arrived here unchanged from orders.js in the first commit; the second adds the free branch on top.",
+      "anchor": {
+        "repo": "shop",
+        "path": "src/delivery.js"
+      },
+      "source": "code",
+      "members": [
+        {
+          "id": "mb-cost",
+          "name": "deliveryCost",
+          "kind": "func",
+          "note": "changed by this PR",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/delivery.js",
+            "find": "export function deliveryCost(order) {"
+          },
+          "source": "code"
+        }
+      ],
+      "read": [
+        {
+          "id": "rd-free",
+          "path": "deliveryCost",
+          "why": "The free branch comes before the weight rule.",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/delivery.js",
+            "find": "if (order.subtotal >= config.freeDeliveryFrom) return 0;"
+          }
+        }
+      ],
+      "skim": [
+        {
+          "id": "sk-weight",
+          "path": "weight rule",
+          "why": "Moved unchanged from orders.js.",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/delivery.js",
+            "find": "const kg = Math.ceil(order.weightKg);",
+            "findEnd": "return Math.min(cost, config.maxDelivery);"
+          }
+        }
+      ],
+      "skip": [
+        {
+          "id": "sp-import",
+          "path": "config import",
+          "why": "Came with the move."
+        }
+      ]
+    },
+    {
+      "id": "deps",
+      "type": "dependency-graph",
+      "title": "Imports",
+      "clusters": [
+        {
+          "id": "cl-domain",
+          "label": "domain"
+        },
+        {
+          "id": "cl-infra",
+          "label": "infrastructure"
+        }
+      ],
+      "nodes": [
+        {
+          "id": "d-server",
+          "label": "src/server.js",
+          "anchors": [
+            {
+              "repo": "shop",
+              "path": "src/server.js"
+            }
+          ]
+        },
+        {
+          "id": "d-orders",
+          "label": "src/orders.js",
+          "cluster": "cl-domain",
+          "anchors": [
+            {
+              "repo": "shop",
+              "path": "src/orders.js"
+            }
+          ]
+        },
+        {
+          "id": "d-delivery",
+          "label": "src/delivery.js",
+          "cluster": "cl-domain",
+          "highlight": true,
+          "anchors": [
+            {
+              "repo": "shop",
+              "path": "src/delivery.js"
+            }
+          ]
+        },
+        {
+          "id": "d-payments",
+          "label": "src/payments.js",
+          "cluster": "cl-domain",
+          "anchors": [
+            {
+              "repo": "shop",
+              "path": "src/payments.js"
+            }
+          ]
+        },
+        {
+          "id": "d-job",
+          "label": "src/jobs/unshipped.js",
+          "cluster": "cl-domain",
+          "anchors": [
+            {
+              "repo": "shop",
+              "path": "src/jobs/unshipped.js"
+            }
+          ]
+        },
+        {
+          "id": "d-config",
+          "label": "src/config.js",
+          "cluster": "cl-infra",
+          "anchors": [
+            {
+              "repo": "shop",
+              "path": "src/config.js"
+            }
+          ]
+        },
+        {
+          "id": "d-db",
+          "label": "src/db.js",
+          "cluster": "cl-infra",
+          "anchors": [
+            {
+              "repo": "shop",
+              "path": "src/db.js"
+            }
+          ]
+        },
+        {
+          "id": "d-events",
+          "label": "src/events.js",
+          "cluster": "cl-infra",
+          "anchors": [
+            {
+              "repo": "shop",
+              "path": "src/events.js"
+            }
+          ]
+        },
+        {
+          "id": "d-notify",
+          "label": "src/notify.js",
+          "cluster": "cl-infra",
+          "highlight": true,
+          "anchors": [
+            {
+              "repo": "shop",
+              "path": "src/notify.js"
+            }
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "from": "d-server",
+          "to": "d-orders",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/server.js",
+            "find": "import { cancel, createOrder, deliver, pay, ship } from './orders.js';"
+          }
+        },
+        {
+          "from": "d-server",
+          "to": "d-payments",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/server.js",
+            "find": "import { refundsOf } from './payments.js';"
+          }
+        },
+        {
+          "from": "d-server",
+          "to": "d-job",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/server.js",
+            "find": "import { startUnshippedJob } from './jobs/unshipped.js';"
+          }
+        },
+        {
+          "from": "d-server",
+          "to": "d-notify",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/server.js",
+            "find": "import './notify.js';"
+          }
+        },
+        {
+          "id": "e-orders-delivery",
+          "from": "d-orders",
+          "to": "d-delivery",
+          "label": "new: deliveryCost",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/orders.js",
+            "find": "import { deliveryCost } from './delivery.js';"
+          }
+        },
+        {
+          "from": "d-orders",
+          "to": "d-config",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/orders.js",
+            "find": "import { config } from './config.js';"
+          }
+        },
+        {
+          "from": "d-orders",
+          "to": "d-db",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/orders.js",
+            "find": "import { db, newId } from './db.js';"
+          }
+        },
+        {
+          "from": "d-orders",
+          "to": "d-events",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/orders.js",
+            "find": "import { publish } from './events.js';"
+          }
+        },
+        {
+          "from": "d-orders",
+          "to": "d-payments",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/orders.js",
+            "find": "import { refund } from './payments.js';"
+          }
+        },
+        {
+          "from": "d-delivery",
+          "to": "d-config",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/delivery.js",
+            "find": "import { config } from './config.js';"
+          }
+        },
+        {
+          "from": "d-payments",
+          "to": "d-db",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/payments.js",
+            "find": "import { db } from './db.js';"
+          }
+        },
+        {
+          "from": "d-payments",
+          "to": "d-events",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/payments.js",
+            "find": "import { publish } from './events.js';"
+          }
+        },
+        {
+          "from": "d-job",
+          "to": "d-orders",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/jobs/unshipped.js",
+            "find": "import { refundUnshipped } from '../orders.js';"
+          }
+        },
+        {
+          "from": "d-notify",
+          "to": "d-config",
+          "label": "new",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/notify.js",
+            "find": "import { config } from './config.js';"
+          }
+        },
+        {
+          "from": "d-notify",
+          "to": "d-events",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/notify.js",
+            "find": "import { subscribe } from './events.js';"
+          }
+        }
+      ]
+    },
+    {
+      "id": "hot",
+      "type": "hotspots",
+      "title": "Hotspots",
+      "metric": "changes",
+      "period": "the whole history (3 commits)",
+      "groups": [
+        {
+          "id": "h-src",
+          "label": "src",
+          "files": [
+            {
+              "id": "h-server",
+              "path": "src/server.js",
+              "lines": 44,
+              "changes": 1,
+              "anchor": {
+                "repo": "shop",
+                "path": "src/server.js"
+              }
+            },
+            {
+              "id": "h-orders",
+              "path": "src/orders.js",
+              "lines": 66,
+              "changes": 2,
+              "anchor": {
+                "repo": "shop",
+                "path": "src/orders.js"
+              }
+            },
+            {
+              "id": "h-delivery",
+              "path": "src/delivery.js",
+              "lines": 8,
+              "changes": 2,
+              "anchor": {
+                "repo": "shop",
+                "path": "src/delivery.js"
+              }
+            },
+            {
+              "id": "h-payments",
+              "path": "src/payments.js",
+              "lines": 14,
+              "changes": 1,
+              "anchor": {
+                "repo": "shop",
+                "path": "src/payments.js"
+              }
+            },
+            {
+              "id": "h-job",
+              "path": "src/jobs/unshipped.js",
+              "lines": 6,
+              "changes": 1,
+              "anchor": {
+                "repo": "shop",
+                "path": "src/jobs/unshipped.js"
+              }
+            },
+            {
+              "id": "h-notify",
+              "path": "src/notify.js",
+              "lines": 17,
+              "changes": 2,
+              "anchor": {
+                "repo": "shop",
+                "path": "src/notify.js"
+              }
+            },
+            {
+              "id": "h-config",
+              "path": "src/config.js",
+              "lines": 13,
+              "changes": 1,
+              "anchor": {
+                "repo": "shop",
+                "path": "src/config.js"
+              }
+            },
+            {
+              "id": "h-db",
+              "path": "src/db.js",
+              "lines": 12,
+              "changes": 1,
+              "anchor": {
+                "repo": "shop",
+                "path": "src/db.js"
+              }
+            },
+            {
+              "id": "h-events",
+              "path": "src/events.js",
+              "lines": 10,
+              "changes": 1,
+              "anchor": {
+                "repo": "shop",
+                "path": "src/events.js"
+              }
+            }
+          ]
+        },
+        {
+          "id": "h-cfg",
+          "label": "config",
+          "files": [
+            {
+              "id": "h-def",
+              "path": "config/default.json",
+              "lines": 8,
+              "changes": 2,
+              "anchor": {
+                "repo": "shop",
+                "path": "config/default.json"
+              }
+            },
+            {
+              "id": "h-prod",
+              "path": "config/production.json",
+              "lines": 6,
+              "changes": 2,
+              "anchor": {
+                "repo": "shop",
+                "path": "config/production.json"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "states",
+      "type": "state-machine",
+      "title": "Order statuses",
+      "subtitle": "Unchanged by this PR: free delivery changes what an order costs, not how it moves.",
+      "states": [
+        {
+          "id": "created",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/orders.js",
+            "find": "  created: 'created',"
+          },
+          "source": "code",
+          "initial": true
+        },
+        {
+          "id": "paid",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/orders.js",
+            "find": "  paid: 'paid',"
+          },
+          "source": "code",
+          "text": "Charged; waiting to ship within shipWithinDays."
+        },
+        {
+          "id": "shipped",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/orders.js",
+            "find": "  shipped: 'shipped',"
+          },
+          "source": "code"
+        },
+        {
+          "id": "delivered",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/orders.js",
+            "find": "  delivered: 'delivered',"
+          },
+          "source": "code",
+          "final": true
+        },
+        {
+          "id": "refunded",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/orders.js",
+            "find": "  refunded: 'refunded',"
+          },
+          "source": "code",
+          "final": true
+        }
+      ],
+      "transitions": [
+        {
+          "id": "t-pay",
+          "from": "created",
+          "to": "paid",
+          "trigger": "pay",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/orders.js",
+            "find": "return advance(orderId, STATUS.created, STATUS.paid, now);"
+          },
+          "source": "code"
+        },
+        {
+          "id": "t-ship",
+          "from": "paid",
+          "to": "shipped",
+          "trigger": "ship",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/orders.js",
+            "find": "return advance(orderId, STATUS.paid, STATUS.shipped, now);"
+          },
+          "source": "code"
+        },
+        {
+          "id": "t-deliver",
+          "from": "shipped",
+          "to": "delivered",
+          "trigger": "deliver",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/orders.js",
+            "find": "return advance(orderId, STATUS.shipped, STATUS.delivered, now);"
+          },
+          "source": "code"
+        },
+        {
+          "id": "t-cancel",
+          "from": "paid",
+          "to": "refunded",
+          "trigger": "cancel",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/orders.js",
+            "find": "const order = advance(orderId, STATUS.paid, STATUS.refunded, now);"
+          },
+          "source": "code"
+        },
+        {
+          "id": "t-job",
+          "from": "paid",
+          "to": "refunded",
+          "trigger": "unshipped job",
+          "condition": "past paidAt + shipWithinDays, via cancel",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/orders.js",
+            "find": "const order = advance(orderId, STATUS.paid, STATUS.refunded, now);"
+          },
+          "source": "code"
+        }
+      ]
+    },
+    {
+      "id": "seq",
+      "type": "sequence",
+      "title": "Placing an order",
+      "participants": [
+        {
+          "id": "http",
+          "label": "server.js",
+          "kind": "service"
+        },
+        {
+          "id": "orders",
+          "label": "orders.js",
+          "kind": "service"
+        },
+        {
+          "id": "delivery",
+          "label": "delivery.js",
+          "kind": "service"
+        },
+        {
+          "id": "bus",
+          "label": "events",
+          "kind": "queue"
+        },
+        {
+          "id": "notify",
+          "label": "notify.js",
+          "kind": "service"
+        }
+      ],
+      "steps": [
+        {
+          "id": "q1",
+          "from": "http",
+          "to": "orders",
+          "label": "createOrder()",
+          "text": "POST /orders with the customer and the items.",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/server.js",
+            "find": "return send(res, 201, createOrder(customerId, items));"
+          },
+          "handler": {
+            "repo": "shop",
+            "path": "src/orders.js",
+            "find": "export function createOrder(customerId, items, now = Date.now()) {"
+          },
+          "source": "code"
+        },
+        {
+          "id": "q2",
+          "from": "orders",
+          "to": "delivery",
+          "label": "deliveryCost(order)",
+          "text": "0 from the threshold, otherwise the weight rule.",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/orders.js",
+            "find": "order.delivery = deliveryCost(order);"
+          },
+          "handler": {
+            "repo": "shop",
+            "path": "src/delivery.js",
+            "find": "export function deliveryCost(order) {"
+          },
+          "source": "code",
+          "change": "changed",
+          "before": {
+            "label": "deliveryCost(order), in orders.js",
+            "anchor": {
+              "repo": "shop@base",
+              "path": "src/orders.js",
+              "find": "export function deliveryCost(order) {"
+            }
+          }
+        },
+        {
+          "id": "q3",
+          "from": "orders",
+          "to": "bus",
+          "label": "publish('order.created')",
+          "text": "The order is stored and announced.",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/orders.js",
+            "find": "publish('order.created', order);"
+          },
+          "source": "code"
+        },
+        {
+          "id": "q4",
+          "from": "bus",
+          "to": "notify",
+          "label": "mail: add N more for free delivery",
+          "text": "Only when the order still pays for delivery.",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/notify.js",
+            "find": "subscribe('order.created',"
+          },
+          "source": "code",
+          "change": "added"
+        }
+      ]
+    },
+    {
+      "id": "path",
+      "type": "path-tracer",
+      "title": "POST /orders",
+      "steps": [
+        {
+          "id": "pt-http",
+          "layer": "HTTP",
+          "node": "server",
+          "text": "Matches the path, reads the body and calls createOrder.",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/server.js",
+            "find": "if (req.method === 'POST' && url.pathname === '/orders') {"
+          },
+          "source": "code",
+          "failures": [
+            {
+              "id": "pt-404",
+              "code": "404",
+              "text": "Any other path.",
+              "anchor": {
+                "repo": "shop",
+                "path": "src/server.js",
+                "find": "return send(res, 404, { error: 'not found' });"
+              },
+              "source": "code"
+            }
+          ]
+        },
+        {
+          "id": "pt-order",
+          "layer": "domain",
+          "node": "createOrder",
+          "text": "Sums the subtotal and the weight, then asks for the delivery cost.",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/orders.js",
+            "find": "export function createOrder(customerId, items, now = Date.now()) {"
+          },
+          "source": "code",
+          "failures": [
+            {
+              "id": "pt-customer",
+              "code": "409",
+              "text": "Unknown customer id: \"unknown customer\".",
+              "anchor": {
+                "repo": "shop",
+                "path": "src/orders.js",
+                "find": "if (!db.customers.has(customerId)) throw new Error('unknown customer');"
+              },
+              "source": "code"
+            },
+            {
+              "id": "pt-empty",
+              "code": "409",
+              "text": "No items: \"empty order\".",
+              "anchor": {
+                "repo": "shop",
+                "path": "src/orders.js",
+                "find": "if (!items?.length) throw new Error('empty order');"
+              },
+              "source": "code"
+            }
+          ]
+        },
+        {
+          "id": "pt-cost",
+          "layer": "domain",
+          "node": "deliveryCost",
+          "text": "Free from freeDeliveryFrom; otherwise base plus per started kg, capped.",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/delivery.js",
+            "find": "export function deliveryCost(order) {"
+          },
+          "source": "code"
+        },
+        {
+          "id": "pt-store",
+          "layer": "store",
+          "node": "db.orders",
+          "text": "Stores the order with its delivery and total, then publishes order.created.",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/orders.js",
+            "find": "db.orders.set(order.id, order);"
+          },
+          "source": "code"
+        }
+      ]
+    },
+    {
+      "id": "rule",
+      "type": "decision-table",
+      "title": "What does delivery cost?",
+      "conditions": [
+        {
+          "id": "sub",
+          "label": "Order subtotal"
+        },
+        {
+          "id": "kg",
+          "label": "Weight"
+        }
+      ],
+      "outcomeLabel": "Delivery",
+      "rows": [
+        {
+          "id": "r-free",
+          "when": {
+            "sub": "≥ freeDeliveryFrom",
+            "kg": "any"
+          },
+          "outcome": "free",
+          "literal": "if (order.subtotal >= config.freeDeliveryFrom) return 0;",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/delivery.js",
+            "find": "if (order.subtotal >= config.freeDeliveryFrom) return 0;"
+          },
+          "source": "code",
+          "change": "added"
+        },
+        {
+          "id": "r-weight",
+          "when": {
+            "sub": "< freeDeliveryFrom",
+            "kg": "any"
+          },
+          "outcome": "deliveryBase + started kg × deliveryPerKg",
+          "literal": "const cost = config.deliveryBase + kg * config.deliveryPerKg;",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/delivery.js",
+            "find": "const cost = config.deliveryBase + kg * config.deliveryPerKg;"
+          },
+          "source": "code",
+          "change": "changed",
+          "before": {
+            "when": {
+              "sub": "any",
+              "kg": "any"
+            },
+            "outcome": "deliveryBase + started kg × deliveryPerKg",
+            "literal": "const cost = config.deliveryBase + kg * config.deliveryPerKg;",
+            "anchor": {
+              "repo": "shop@base",
+              "path": "src/orders.js",
+              "find": "const cost = config.deliveryBase + kg * config.deliveryPerKg;"
+            }
+          }
+        },
+        {
+          "id": "r-cap",
+          "when": {
+            "sub": "< freeDeliveryFrom",
+            "kg": "heavy"
+          },
+          "outcome": "at most maxDelivery",
+          "literal": "return Math.min(cost, config.maxDelivery);",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/delivery.js",
+            "find": "return Math.min(cost, config.maxDelivery);"
+          },
+          "source": "code"
+        }
+      ]
+    },
+    {
+      "id": "calc",
+      "type": "calculation",
+      "title": "A delivery cost, worked through",
+      "subtitle": "Default settings, a 4,999-cent order weighing 1.2 kg.",
+      "inputs": [
+        {
+          "name": "subtotal",
+          "value": 4999
+        },
+        {
+          "name": "weightKg",
+          "value": 1.2
+        },
+        {
+          "name": "freeDeliveryFrom",
+          "value": 5000
+        },
+        {
+          "name": "deliveryBase",
+          "value": 490
+        },
+        {
+          "name": "deliveryPerKg",
+          "value": 150
+        },
+        {
+          "name": "maxDelivery",
+          "value": 2500
+        }
+      ],
+      "steps": [
+        {
+          "id": "k1",
+          "label": "free?",
+          "expr": "4999 ≥ freeDeliveryFrom",
+          "value": "no",
+          "literal": "order.subtotal >= config.freeDeliveryFrom",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/delivery.js",
+            "find": "if (order.subtotal >= config.freeDeliveryFrom) return 0;"
+          },
+          "source": "code"
+        },
+        {
+          "id": "k2",
+          "label": "kg",
+          "expr": "ceil(1.2)",
+          "value": 2,
+          "literal": "Math.ceil(order.weightKg)",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/delivery.js",
+            "find": "const kg = Math.ceil(order.weightKg);"
+          },
+          "source": "code"
+        },
+        {
+          "id": "k3",
+          "label": "cost",
+          "expr": "deliveryBase + kg × deliveryPerKg",
+          "value": 790,
+          "literal": "config.deliveryBase + kg * config.deliveryPerKg",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/delivery.js",
+            "find": "const cost = config.deliveryBase + kg * config.deliveryPerKg;"
+          },
+          "source": "code"
+        },
+        {
+          "id": "k4",
+          "label": "capped",
+          "expr": "min(cost, maxDelivery)",
+          "value": 790,
+          "literal": "Math.min(cost, config.maxDelivery)",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/delivery.js",
+            "find": "return Math.min(cost, config.maxDelivery);"
+          },
+          "source": "code"
+        }
+      ],
+      "result": {
+        "label": "delivery",
+        "value": 790
+      }
+    },
+    {
+      "id": "sim",
+      "type": "simulator",
+      "title": "Try the delivery rule",
+      "note": "Amounts in cents; the code rounds the weight up to whole kilograms.",
+      "inputs": [
+        {
+          "id": "subtotal",
+          "label": "Order subtotal",
+          "kind": "number",
+          "default": 4999,
+          "min": 0,
+          "max": 20000,
+          "step": 1
+        },
+        {
+          "id": "weight",
+          "label": "Weight, kg",
+          "kind": "number",
+          "default": 1.2,
+          "min": 0,
+          "max": 50,
+          "step": 0.1
+        },
+        {
+          "id": "threshold",
+          "label": "freeDeliveryFrom",
+          "kind": "select",
+          "default": 5000,
+          "options": [
+            5000,
+            7500
+          ]
+        },
+        {
+          "id": "base",
+          "label": "deliveryBase",
+          "kind": "select",
+          "default": 490,
+          "options": [
+            490,
+            590
+          ]
+        },
+        {
+          "id": "cap",
+          "label": "maxDelivery",
+          "kind": "select",
+          "default": 2500,
+          "options": [
+            2500,
+            3000
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "id": "free",
+          "label": "Free delivery",
+          "expr": "subtotal >= threshold",
+          "literal": "order.subtotal >= config.freeDeliveryFrom",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/delivery.js",
+            "find": "if (order.subtotal >= config.freeDeliveryFrom) return 0;"
+          },
+          "source": "code"
+        },
+        {
+          "id": "delivery",
+          "label": "Delivery",
+          "expr": "free ? 0 : min(base + ceil(weight) * 150, cap)",
+          "literal": "Math.min(cost, config.maxDelivery)",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/delivery.js",
+            "find": "return Math.min(cost, config.maxDelivery);"
+          },
+          "source": "code"
+        },
+        {
+          "id": "total",
+          "label": "Total",
+          "expr": "subtotal + delivery",
+          "literal": "order.subtotal + order.delivery",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/orders.js",
+            "find": "order.total = order.subtotal + order.delivery;"
+          },
+          "source": "code"
+        }
+      ]
+    },
+    {
+      "id": "time",
+      "type": "timeline",
+      "title": "After payment",
+      "subtitle": "Red: the shipping window; a paid order not shipped in it is refunded.",
+      "origin": {
+        "label": "paid",
+        "anchor": {
+          "repo": "shop",
+          "path": "src/orders.js",
+          "find": "return advance(orderId, STATUS.created, STATUS.paid, now);"
+        }
+      },
+      "unit": "d",
+      "lanes": [
+        {
+          "id": "ln-order",
+          "label": "order status"
+        },
+        {
+          "id": "ln-mail",
+          "label": "customer mail"
+        }
+      ],
+      "events": [
+        {
+          "id": "ev-paid",
+          "lane": "ln-order",
+          "at": 0,
+          "label": "paid",
+          "kind": "event",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/orders.js",
+            "find": "  paid: 'paid',"
+          },
+          "source": "code"
+        },
+        {
+          "id": "ev-refund",
+          "lane": "ln-order",
+          "at": 3,
+          "label": "refunded",
+          "kind": "timeout",
+          "failure": true,
+          "text": "First job run after shipWithinDays (default 3).",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/orders.js",
+            "find": "if (order.status === STATUS.paid && now > order.paidAt + config.shipWithinDays * DAY) {"
+          },
+          "source": "code"
+        },
+        {
+          "id": "ev-mail",
+          "lane": "ln-mail",
+          "at": 3,
+          "label": "cancelled + refund mails",
+          "kind": "event",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/notify.js",
+            "find": "subscribe('refund.issued',"
+          },
+          "source": "code"
+        }
+      ],
+      "holds": [
+        {
+          "id": "hd-ship",
+          "lane": "ln-order",
+          "from": 0,
+          "until": 3,
+          "label": "shipping window",
+          "anchor": {
+            "repo": "shop",
+            "path": "config/default.json",
+            "find": "\"shipWithinDays\": 3,"
+          },
+          "source": "code"
+        }
+      ],
+      "anytime": [
+        {
+          "id": "any-ship",
+          "label": "order shipped",
+          "text": "Ends the window; the job leaves shipped orders alone.",
+          "during": "hd-ship",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/orders.js",
+            "find": "return advance(orderId, STATUS.paid, STATUS.shipped, now);"
+          },
+          "source": "code"
+        }
+      ]
+    },
+    {
+      "id": "topics",
+      "type": "event-topology",
+      "title": "Events",
+      "channels": [
+        {
+          "id": "ch-created",
+          "name": "order.created",
+          "kind": "topic",
+          "how": "synchronously, in process",
+          "publishers": [
+            {
+              "name": "createOrder",
+              "anchor": {
+                "repo": "shop",
+                "path": "src/orders.js",
+                "find": "publish('order.created', order);"
+              }
+            }
+          ],
+          "consumers": [
+            {
+              "name": "notify: free-delivery hint",
+              "anchor": {
+                "repo": "shop",
+                "path": "src/notify.js",
+                "find": "subscribe('order.created',"
+              }
+            }
+          ],
+          "source": "code"
+        },
+        {
+          "id": "ch-shipped",
+          "name": "order.shipped",
+          "kind": "topic",
+          "how": "synchronously, in process",
+          "publishers": [
+            {
+              "name": "ship",
+              "anchor": {
+                "repo": "shop",
+                "path": "src/orders.js",
+                "find": "publish(`order.${to}`, order);"
+              }
+            }
+          ],
+          "consumers": [
+            {
+              "name": "notify",
+              "anchor": {
+                "repo": "shop",
+                "path": "src/notify.js",
+                "find": "subscribe('order.shipped',"
+              }
+            }
+          ],
+          "source": "code"
+        },
+        {
+          "id": "ch-refunded",
+          "name": "order.refunded",
+          "kind": "topic",
+          "how": "synchronously, in process",
+          "publishers": [
+            {
+              "name": "cancel / unshipped job",
+              "anchor": {
+                "repo": "shop",
+                "path": "src/orders.js",
+                "find": "publish(`order.${to}`, order);"
+              }
+            }
+          ],
+          "consumers": [
+            {
+              "name": "notify",
+              "anchor": {
+                "repo": "shop",
+                "path": "src/notify.js",
+                "find": "subscribe('order.refunded',"
+              }
+            }
+          ],
+          "source": "code"
+        },
+        {
+          "id": "ch-refund",
+          "name": "refund.issued",
+          "kind": "topic",
+          "how": "synchronously, in process",
+          "publishers": [
+            {
+              "name": "refund",
+              "anchor": {
+                "repo": "shop",
+                "path": "src/payments.js",
+                "find": "publish('refund.issued', record);"
+              }
+            }
+          ],
+          "consumers": [
+            {
+              "name": "notify",
+              "anchor": {
+                "repo": "shop",
+                "path": "src/notify.js",
+                "find": "subscribe('refund.issued',"
+              }
+            }
+          ],
+          "source": "code"
+        }
+      ]
+    },
+    {
+      "id": "api",
+      "type": "contract",
+      "title": "HTTP API",
+      "endpoints": [
+        {
+          "id": "ep-create",
+          "method": "POST",
+          "path": "/orders",
+          "between": "shop front → shop",
+          "text": "Places an order; the response carries the delivery cost and the total.",
+          "request": "{ \"customerId\": \"c-1\", \"items\": [ { \"price\": 2500, \"qty\": 2, \"weightKg\": 3 } ] }",
+          "response": "201 { \"id\": \"order-1\", \"status\": \"created\", \"subtotal\": 5000, \"delivery\": 0, \"total\": 5000, … }",
+          "failures": [
+            {
+              "code": "409",
+              "text": "Unknown customer or empty order."
+            }
+          ],
+          "anchor": {
+            "repo": "shop",
+            "path": "src/server.js",
+            "find": "if (req.method === 'POST' && url.pathname === '/orders') {"
+          },
+          "source": "code"
+        },
+        {
+          "id": "ep-action",
+          "method": "POST",
+          "path": "/orders/:id/{pay,ship,deliver,cancel}",
+          "between": "shop front → shop",
+          "text": "Moves the order one status on.",
+          "response": "200 { \"id\": \"order-1\", \"status\": \"paid\", \"paidAt\": 1767607200000, … }",
+          "failures": [
+            {
+              "code": "409",
+              "text": "Unknown order, or not in the status the action expects."
+            }
+          ],
+          "anchor": {
+            "repo": "shop",
+            "path": "src/server.js",
+            "find": "return send(res, 200, actions[action[2]](action[1]));"
+          },
+          "source": "code"
+        },
+        {
+          "id": "ep-refunds",
+          "method": "GET",
+          "path": "/customers/:id/refunds",
+          "between": "shop front → shop",
+          "text": "Refunds of a customer.",
+          "response": "200 [ { \"orderId\": \"order-1\", \"customerId\": \"c-1\", \"amount\": 5000 } ]",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/server.js",
+            "find": "return send(res, 200, refundsOf(refunds[1]));"
+          },
+          "source": "code"
+        }
+      ]
+    },
+    {
+      "id": "model",
+      "type": "data-model",
+      "title": "Data",
+      "entities": [
+        {
+          "id": "en-order",
+          "name": "order",
+          "store": "db.orders",
+          "owner": "orders.js",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/orders.js",
+            "find": "const order = { id: newId('order'), customerId, items, subtotal, weightKg, status: STATUS.created, createdAt: now };"
+          },
+          "source": "code",
+          "fields": [
+            {
+              "id": "fd-oid",
+              "name": "id",
+              "key": "pk"
+            },
+            {
+              "id": "fd-ocust",
+              "name": "customerId",
+              "key": "fk"
+            },
+            {
+              "name": "items"
+            },
+            {
+              "id": "fd-sub",
+              "name": "subtotal",
+              "type": "cents",
+              "highlight": true,
+              "note": "now decides free delivery"
+            },
+            {
+              "name": "weightKg"
+            },
+            {
+              "id": "fd-delivery",
+              "name": "delivery",
+              "type": "cents",
+              "highlight": true,
+              "note": "0 from the threshold"
+            },
+            {
+              "name": "total",
+              "type": "cents"
+            },
+            {
+              "name": "status"
+            },
+            {
+              "name": "paidAt",
+              "type": "ms timestamp"
+            }
+          ]
+        },
+        {
+          "id": "en-refund",
+          "name": "refund",
+          "store": "db.refunds",
+          "owner": "payments.js",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/payments.js",
+            "find": "const record = { orderId: order.id, customerId: order.customerId, amount };"
+          },
+          "source": "code",
+          "fields": [
+            {
+              "name": "orderId",
+              "key": "fk"
+            },
+            {
+              "name": "customerId",
+              "key": "fk"
+            },
+            {
+              "name": "amount",
+              "type": "cents"
+            }
+          ]
+        },
+        {
+          "id": "en-customer",
+          "name": "customer",
+          "store": "db.customers",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/db.js",
+            "find": "customers: new Map(),"
+          },
+          "source": "code",
+          "fields": [
+            {
+              "name": "id",
+              "key": "pk"
+            },
+            {
+              "name": "email"
+            }
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "id": "rel-1",
+          "from": "customer",
+          "to": "order",
+          "kind": "1-n",
+          "label": "places",
+          "source": "inferred"
+        },
+        {
+          "id": "rel-2",
+          "from": "order",
+          "to": "refund",
+          "kind": "1-1",
+          "label": "refunded in full at most once",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/orders.js",
+            "find": "refund(order, order.total);"
+          },
+          "source": "code"
+        }
+      ]
+    },
+    {
+      "id": "lineage",
+      "type": "field-lineage",
+      "title": "Where order.delivery comes from",
+      "field": "order.delivery",
+      "stages": [
+        {
+          "id": "lg-1",
+          "kind": "born",
+          "value": "config.freeDeliveryFrom",
+          "text": "Read from config/<APP_ENV>.json over the defaults.",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/config.js",
+            "find": "export const config = { ...load('default'), ...load(env) };"
+          },
+          "source": "code"
+        },
+        {
+          "id": "lg-2",
+          "kind": "transformed",
+          "value": "order.subtotal >= config.freeDeliveryFrom ? 0",
+          "text": "Compared with the subtotal; at or above it the cost is 0.",
+          "hot": true,
+          "anchor": {
+            "repo": "shop",
+            "path": "src/delivery.js",
+            "find": "if (order.subtotal >= config.freeDeliveryFrom) return 0;"
+          },
+          "source": "code"
+        },
+        {
+          "id": "lg-3",
+          "kind": "transformed",
+          "value": "Math.min(cost, config.maxDelivery)",
+          "text": "Otherwise base plus per started kg, capped.",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/delivery.js",
+            "find": "return Math.min(cost, config.maxDelivery);"
+          },
+          "source": "code"
+        },
+        {
+          "id": "lg-4",
+          "kind": "stored",
+          "value": "db.orders.set(order.id, order)",
+          "text": "Stored on the order together with total.",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/orders.js",
+            "find": "db.orders.set(order.id, order);"
+          },
+          "source": "code"
+        },
+        {
+          "id": "lg-5",
+          "kind": "read",
+          "value": "order.delivery > 0",
+          "text": "Read by notify.js to decide on the hint mail.",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/notify.js",
+            "find": "if (order.delivery > 0) mail(order.customerId, `Add ${config.freeDeliveryFrom - order.subtotal} more to order ${order.id} for free delivery`);"
+          },
+          "source": "code"
+        }
+      ]
+    },
+    {
+      "id": "crud",
+      "type": "crud-matrix",
+      "title": "Who touches which store",
+      "actors": [
+        {
+          "id": "ac-orders",
+          "name": "orders.js",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/orders.js"
+          }
+        },
+        {
+          "id": "ac-payments",
+          "name": "payments.js",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/payments.js"
+          }
+        },
+        {
+          "id": "ac-notify",
+          "name": "notify.js",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/notify.js"
+          }
+        }
+      ],
+      "stores": [
+        {
+          "id": "st-orders",
+          "name": "db.orders",
+          "kind": "table",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/db.js",
+            "find": "orders: new Map(),"
+          },
+          "access": [
+            {
+              "actor": "ac-orders",
+              "ops": "CR",
+              "anchor": {
+                "repo": "shop",
+                "path": "src/orders.js",
+                "find": "db.orders.set(order.id, order);"
+              },
+              "source": "code"
+            },
+            {
+              "actor": "ac-orders",
+              "ops": "U",
+              "anchor": {
+                "repo": "shop",
+                "path": "src/orders.js",
+                "find": "order.status = to;"
+              },
+              "source": "code"
+            }
+          ]
+        },
+        {
+          "id": "st-refunds",
+          "name": "db.refunds",
+          "kind": "table",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/db.js",
+            "find": "refunds: [],"
+          },
+          "access": [
+            {
+              "actor": "ac-payments",
+              "ops": "CR",
+              "anchor": {
+                "repo": "shop",
+                "path": "src/payments.js",
+                "find": "db.refunds.push(record);"
+              },
+              "source": "code"
+            }
+          ]
+        },
+        {
+          "id": "st-customers",
+          "name": "db.customers",
+          "kind": "table",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/db.js",
+            "find": "customers: new Map(),"
+          },
+          "access": [
+            {
+              "actor": "ac-orders",
+              "ops": "R",
+              "anchor": {
+                "repo": "shop",
+                "path": "src/orders.js",
+                "find": "if (!db.customers.has(customerId)) throw new Error('unknown customer');"
+              },
+              "source": "code"
+            },
+            {
+              "actor": "ac-notify",
+              "ops": "R",
+              "anchor": {
+                "repo": "shop",
+                "path": "src/notify.js",
+                "find": "const customer = db.customers.get(customerId);"
+              },
+              "source": "code"
+            }
+          ]
+        },
+        {
+          "id": "st-outbox",
+          "name": "outbox",
+          "kind": "queue",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/notify.js",
+            "find": "export const outbox = [];"
+          },
+          "access": [
+            {
+              "actor": "ac-notify",
+              "ops": "C",
+              "anchor": {
+                "repo": "shop",
+                "path": "src/notify.js",
+                "find": "if (customer?.email) outbox.push({ to: customer.email, subject });"
+              },
+              "source": "code"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "config",
+      "type": "config-panel",
+      "title": "Settings",
+      "params": [
+        {
+          "id": "p-free",
+          "name": "freeDeliveryFrom",
+          "default": "5000",
+          "anchor": {
+            "repo": "shop",
+            "path": "config/default.json",
+            "find": "\"freeDeliveryFrom\": 5000,"
+          },
+          "values": {
+            "development": "5000",
+            "production": "7500"
+          },
+          "affects": "The subtotal from which delivery is free, and the amount the hint mail asks for.",
+          "affectsAnchors": [
+            {
+              "repo": "shop",
+              "path": "src/delivery.js",
+              "find": "if (order.subtotal >= config.freeDeliveryFrom) return 0;"
+            },
+            {
+              "repo": "shop",
+              "path": "src/notify.js",
+              "find": "if (order.delivery > 0) mail(order.customerId, `Add ${config.freeDeliveryFrom - order.subtotal} more to order ${order.id} for free delivery`);"
+            }
+          ],
+          "source": "code"
+        },
+        {
+          "id": "p-base",
+          "name": "deliveryBase",
+          "default": "490",
+          "anchor": {
+            "repo": "shop",
+            "path": "config/default.json",
+            "find": "\"deliveryBase\": 490,"
+          },
+          "values": {
+            "development": "490",
+            "production": "590"
+          },
+          "affects": "The fixed part of a paid delivery.",
+          "affectsAnchors": [
+            {
+              "repo": "shop",
+              "path": "src/delivery.js",
+              "find": "const cost = config.deliveryBase + kg * config.deliveryPerKg;"
+            }
+          ],
+          "source": "code"
+        },
+        {
+          "id": "p-kg",
+          "name": "deliveryPerKg",
+          "default": "150",
+          "anchor": {
+            "repo": "shop",
+            "path": "config/default.json",
+            "find": "\"deliveryPerKg\": 150,"
+          },
+          "values": {
+            "development": "150",
+            "production": "150"
+          },
+          "affects": "The price of each started kilogram.",
+          "source": "code"
+        },
+        {
+          "id": "p-cap",
+          "name": "maxDelivery",
+          "default": "2500",
+          "anchor": {
+            "repo": "shop",
+            "path": "config/default.json",
+            "find": "\"maxDelivery\": 2500,"
+          },
+          "values": {
+            "development": "2500",
+            "production": "3000"
+          },
+          "affects": "The cap on one delivery.",
+          "source": "code"
+        },
+        {
+          "id": "p-ship",
+          "name": "shipWithinDays",
+          "default": "3",
+          "anchor": {
+            "repo": "shop",
+            "path": "config/default.json",
+            "find": "\"shipWithinDays\": 3,"
+          },
+          "values": {
+            "development": "3",
+            "production": "3"
+          },
+          "affects": "How long a paid order may wait for shipping before it is refunded.",
+          "affectsAnchors": [
+            {
+              "repo": "shop",
+              "path": "src/orders.js",
+              "find": "if (order.status === STATUS.paid && now > order.paidAt + config.shipWithinDays * DAY) {"
+            }
+          ],
+          "source": "code"
+        },
+        {
+          "id": "p-check",
+          "name": "unshippedCheckMinutes",
+          "default": "60",
+          "anchor": {
+            "repo": "shop",
+            "path": "config/default.json",
+            "find": "\"unshippedCheckMinutes\": 60"
+          },
+          "values": {
+            "development": "60",
+            "production": "15"
+          },
+          "affects": "How often the unshipped job runs.",
+          "affectsAnchors": [
+            {
+              "repo": "shop",
+              "path": "src/jobs/unshipped.js",
+              "find": "return setInterval(() => refundUnshipped(), config.unshippedCheckMinutes * 60 * 1000);"
+            }
+          ],
+          "source": "code"
+        }
+      ]
+    },
+    {
+      "id": "fail",
+      "type": "failure-modes",
+      "title": "Failure modes",
+      "modes": [
+        {
+          "id": "fm-twice",
+          "situation": "An order is paid twice",
+          "behavior": "advance throws because the order is no longer created.",
+          "visible": "409 \"order is paid, not created\".",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/orders.js",
+            "find": "if (order.status !== from) throw new Error(`order is ${order.status}, not ${from}`);"
+          },
+          "source": "code"
+        },
+        {
+          "id": "fm-mail",
+          "situation": "A customer has no email",
+          "behavior": "The hint and the other mails are silently dropped.",
+          "visible": "No mail; the order is still created.",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/notify.js",
+            "find": "if (customer?.email) outbox.push({ to: customer.email, subject });"
+          },
+          "source": "code"
+        },
+        {
+          "id": "fm-noconf",
+          "situation": "freeDeliveryFrom is missing from the config",
+          "behavior": "The comparison with undefined is false, so no order ships free; the hint mail says \"Add NaN more\".",
+          "visible": "Everyone pays delivery; a broken mail.",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/delivery.js",
+            "find": "if (order.subtotal >= config.freeDeliveryFrom) return 0;"
+          },
+          "source": "inferred"
+        }
+      ]
+    },
+    {
+      "id": "inv",
+      "type": "invariants",
+      "title": "Invariants",
+      "invariants": [
+        {
+          "id": "iv-total",
+          "text": "An order total is always its subtotal plus its delivery.",
+          "check": "order.subtotal + order.delivery",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/orders.js",
+            "find": "order.total = order.subtotal + order.delivery;"
+          },
+          "source": "code"
+        },
+        {
+          "id": "iv-cap",
+          "text": "A delivery never exceeds maxDelivery.",
+          "check": "Math.min(cost, config.maxDelivery)",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/delivery.js",
+            "find": "return Math.min(cost, config.maxDelivery);"
+          },
+          "source": "code"
+        },
+        {
+          "id": "iv-hint",
+          "text": "A customer whose delivery is free never gets the hint mail.",
+          "check": "order.delivery > 0",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/notify.js",
+            "find": "if (order.delivery > 0) mail(order.customerId, `Add ${config.freeDeliveryFrom - order.subtotal} more to order ${order.id} for free delivery`);"
+          },
+          "source": "code"
+        }
+      ]
+    },
+    {
+      "id": "docs",
+      "type": "doc-changes",
+      "title": "Documentation",
+      "repo": "shop",
+      "base": "shop@base",
+      "files": [
+        {
+          "id": "dc-readme",
+          "path": "README.md",
+          "summary": "Delivery describes the threshold and the hint mail.",
+          "fragments": [
+            {
+              "id": "dcf-1",
+              "find": "Delivery is free for orders whose subtotal reaches `freeDeliveryFrom`. Below it, delivery costs",
+              "kind": "read",
+              "title": "Free delivery and the hint",
+              "summary": "The README states the new rule in customer terms.",
+              "commit": "c7c72dcf0afd580f25d145d28106b8fecdf282ac"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "layer-rule",
+      "type": "changes",
+      "title": "The delivery rule: delivery.js and config",
+      "subtitle": "Read first: the rule the rest of the change is about.",
+      "repo": "shop",
+      "base": "shop@base",
+      "files": [
+        {
+          "id": "cf-delivery",
+          "path": "src/delivery.js",
+          "fragments": [
+            {
+              "id": "cfr-free",
+              "kind": "read",
+              "title": "deliveryCost moved here, plus the free branch",
+              "description": "deliveryCost arrives from orders.js with its config import; the only new logic is returning 0 from the threshold.",
+              "function": "deliveryCost",
+              "commit": "c7c72dcf0afd580f25d145d28106b8fecdf282ac",
+              "notes": [
+                {
+                  "id": "cn-free",
+                  "at": {
+                    "find": "if (order.subtotal >= config.freeDeliveryFrom) return 0;"
+                  },
+                  "text": "The one line that changes the price: >=, so an order exactly at the threshold ships free.",
+                  "source": "code"
+                }
+              ],
+              "test": {
+                "name": "an order from freeDeliveryFrom ships free",
+                "anchor": {
+                  "repo": "shop",
+                  "path": "test/orders.test.js",
+                  "find": "test('an order from freeDeliveryFrom ships free', () => {",
+                  "findEnd": "});"
+                },
+                "description": "A 5000-cent order weighing 6 kg pays no delivery."
+              }
+            }
+          ]
+        },
+        {
+          "id": "cf-orders",
+          "path": "src/orders.js",
+          "fragments": [
+            {
+              "id": "cfr-moved",
+              "kind": "skip",
+              "title": "deliveryCost leaves",
+              "description": "The function moved to delivery.js; its header is here because the copy there changed.",
+              "function": "deliveryCost",
+              "commit": "6d309f2c7bb0ebb688fd38f793b16343b73013a7",
+              "at": {
+                "find": "export function deliveryCost(order) {",
+                "findEnd": "function advance(orderId, from, to, now) {",
+                "side": "base"
+              }
+            }
+          ]
+        },
+        {
+          "id": "cf-def",
+          "path": "config/default.json",
+          "fragments": [
+            {
+              "id": "cfr-def",
+              "kind": "skim",
+              "title": "freeDeliveryFrom default",
+              "description": "5000 cents.",
+              "commit": "c7c72dcf0afd580f25d145d28106b8fecdf282ac",
+              "test": {
+                "name": "delivery is charged per started kilogram",
+                "anchor": {
+                  "repo": "shop",
+                  "path": "test/orders.test.js",
+                  "find": "test('delivery is charged per started kilogram', () => {",
+                  "findEnd": "});"
+                },
+                "description": "A 2400-cent order stays below the default and still pays by weight."
+              }
+            }
+          ]
+        },
+        {
+          "id": "cf-prod",
+          "path": "config/production.json",
+          "fragments": [
+            {
+              "id": "cfr-prod",
+              "kind": "skim",
+              "title": "freeDeliveryFrom in production",
+              "description": "7500 cents.",
+              "commit": "c7c72dcf0afd580f25d145d28106b8fecdf282ac"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "layer-hint",
+      "type": "changes",
+      "title": "The hint: notify.js",
+      "subtitle": "Then the mail that tells customers how close they are.",
+      "repo": "shop",
+      "base": "shop@base",
+      "files": [
+        {
+          "id": "cf-notify",
+          "path": "src/notify.js",
+          "fragments": [
+            {
+              "id": "cfr-hint",
+              "kind": "read",
+              "title": "Hint mail on order.created",
+              "description": "A new subscriber mails the missing amount when the order still pays for delivery.",
+              "function": "subscribe",
+              "commit": "c7c72dcf0afd580f25d145d28106b8fecdf282ac",
+              "notes": [
+                {
+                  "id": "cn-hint",
+                  "at": {
+                    "find": "if (order.delivery > 0) mail(order.customerId, `Add ${config.freeDeliveryFrom - order.subtotal} more to order ${order.id} for free delivery`);"
+                  },
+                  "text": "Keyed on delivery > 0, not on the subtotal: an order that is free for another reason gets no hint either.",
+                  "source": "code"
+                }
+              ],
+              "test": {
+                "name": "below the threshold the customer is told how much more makes delivery free",
+                "anchor": {
+                  "repo": "shop",
+                  "path": "test/orders.test.js",
+                  "find": "test('below the threshold the customer is told how much more makes delivery free', () => {",
+                  "findEnd": "});"
+                },
+                "description": "A 4999-cent order mails \"Add 1 more\"."
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tests",
+      "type": "test-coverage",
+      "title": "Test coverage",
+      "mode": "diff",
+      "files": [
+        {
+          "path": "test/orders.test.js"
+        }
+      ]
+    },
+    {
+      "id": "moved",
+      "type": "moved-code",
+      "title": "Moved code",
+      "items": [
+        {
+          "id": "moved-1",
+          "title": "deliveryCost body: orders.js → delivery.js",
+          "from": {
+            "path": "src/orders.js",
+            "start": 30,
+            "end": 33
+          },
+          "to": {
+            "path": "src/delivery.js",
+            "start": 5,
+            "end": 8
+          },
+          "lines": 4,
+          "body": "  const kg = Math.ceil(order.weightKg);\n  const cost = config.deliveryBase + kg * config.deliveryPerKg;\n  return Math.min(cost, config.maxDelivery);\n}"
+        }
+      ]
+    },
+    {
+      "id": "noise",
+      "type": "noise",
+      "title": "Noise",
+      "items": [
+        {
+          "id": "noise-imports",
+          "kind": "imports",
+          "title": "Imports",
+          "paths": [
+            "src/notify.js",
+            "src/orders.js",
+            "test/orders.test.js"
+          ],
+          "lines": 5,
+          "body": "src/notify.js\n+ import { config } from './config.js';\nsrc/orders.js\n+ import { config } from './config.js';\n+ import { deliveryCost } from './delivery.js';\n- import { config } from './config.js';\ntest/orders.test.js\n+ import { outbox } from '../src/notify.js';"
+        }
+      ]
+    },
+    {
+      "id": "risks",
+      "type": "risks",
+      "title": "Risks",
+      "risks": [
+        {
+          "id": "rk-open",
+          "severity": "high",
+          "title": "Orders created before the deploy",
+          "consequence": "Delivery is computed once, at creation; created orders above the threshold keep their old delivery charge when they are paid.",
+          "reference": "README, Delivery",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/orders.js",
+            "find": "order.delivery = deliveryCost(order);"
+          },
+          "source": "inferred"
+        },
+        {
+          "id": "rk-refund",
+          "severity": "low",
+          "title": "Refunds return the total",
+          "consequence": "A refund pays back order.total, so free-delivery orders refund only the goods — correct, but support should know the amount changed.",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/orders.js",
+            "find": "refund(order, order.total);"
+          },
+          "source": "inferred"
+        },
+        {
+          "id": "rk-missing",
+          "severity": "low",
+          "title": "freeDeliveryFrom missing in an env file",
+          "consequence": "Falls back to the default 5000, not to \"no free delivery\".",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/config.js",
+            "find": "export const config = { ...load('default'), ...load(env) };"
+          },
+          "source": "code"
+        }
+      ]
+    },
+    {
+      "id": "where",
+      "type": "code-anchor",
+      "title": "Where to look",
+      "items": [
+        {
+          "id": "wa-1",
+          "text": "The delivery rule.",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/delivery.js",
+            "find": "export function deliveryCost(order) {",
+            "findEnd": "return Math.min(cost, config.maxDelivery);"
+          },
+          "source": "code"
+        },
+        {
+          "id": "wa-2",
+          "text": "The hint mail.",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/notify.js",
+            "find": "subscribe('order.created',"
+          },
+          "source": "code"
+        },
+        {
+          "id": "wa-3",
+          "label": "all mails",
+          "text": "Every event notify.js mails on, the new hint among them.",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/notify.js",
+            "find": [
+              "subscribe('order.created',",
+              "subscribe('order.shipped',",
+              "subscribe('order.refunded',",
+              "subscribe('refund.issued',"
+            ]
+          },
+          "source": "code"
+        }
+      ]
+    },
+    {
+      "id": "questions",
+      "type": "open-questions",
+      "title": "Open questions",
+      "items": [
+        {
+          "id": "oq-recalc",
+          "text": "Should delivery be recalculated at payment, so orders created before the deploy get free delivery too?",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/orders.js",
+            "find": "order.delivery = deliveryCost(order);"
+          }
+        }
+      ]
+    },
+    {
+      "id": "change",
+      "type": "change-points",
+      "title": "Change points",
+      "points": [
+        {
+          "id": "cp-start",
+          "kind": "start",
+          "title": "Start in delivery.js",
+          "text": "The rule lives in deliveryCost now.",
+          "anchors": [
+            {
+              "repo": "shop",
+              "path": "src/delivery.js",
+              "find": "export function deliveryCost(order) {"
+            }
+          ],
+          "source": "code"
+        },
+        {
+          "id": "cp-together",
+          "kind": "together",
+          "title": "Rule and hint move together",
+          "text": "A new condition for free delivery needs deliveryCost and the hint mail in notify.js.",
+          "anchors": [
+            {
+              "repo": "shop",
+              "path": "src/delivery.js",
+              "find": "if (order.subtotal >= config.freeDeliveryFrom) return 0;"
+            },
+            {
+              "repo": "shop",
+              "path": "src/notify.js",
+              "find": "subscribe('order.created',"
+            }
+          ],
+          "source": "inferred"
+        },
+        {
+          "id": "cp-danger",
+          "kind": "danger",
+          "title": "Delivery is fixed at creation",
+          "text": "createOrder computes delivery once; nothing recomputes it later.",
+          "anchors": [
+            {
+              "repo": "shop",
+              "path": "src/orders.js",
+              "find": "order.delivery = deliveryCost(order);"
+            }
+          ],
+          "source": "inferred"
+        },
+        {
+          "id": "cp-run",
+          "kind": "run",
+          "title": "Run the tests",
+          "text": "Covers weight, cap, threshold, hint and the unshipped refund.",
+          "commands": [
+            "npm test"
+          ],
+          "source": "code"
+        }
+      ]
+    },
+    {
+      "id": "focus",
+      "type": "reviewer-focus",
+      "title": "What to look at",
+      "items": [
+        {
+          "id": "rf-1",
+          "title": "Orders created before the deploy",
+          "text": "Decide whether their delivery should be recomputed.",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/orders.js",
+            "find": "order.delivery = deliveryCost(order);"
+          },
+          "source": "inferred"
+        },
+        {
+          "id": "rf-2",
+          "title": "The boundary",
+          "text": ">= makes an order exactly at freeDeliveryFrom free; the test pins it at 5000.",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/delivery.js",
+            "find": "if (order.subtotal >= config.freeDeliveryFrom) return 0;"
+          },
+          "source": "code"
+        }
+      ]
+    }
+  ],
+  "route": [
+    {
+      "block": "brief",
+      "minutes": 0.5,
+      "why": "The change in two sentences.",
+      "modes": [
+        "short",
+        "full"
+      ]
+    },
+    {
+      "block": "glossary",
+      "minutes": 0.25,
+      "why": "The terms the page uses.",
+      "modes": [
+        "full"
+      ]
+    },
+    {
+      "block": "claims",
+      "minutes": 0.5,
+      "why": "What was promised and what is in the code.",
+      "modes": [
+        "short",
+        "full"
+      ]
+    },
+    {
+      "block": "commits",
+      "minutes": 0.25,
+      "why": "A move, then the change.",
+      "modes": [
+        "full"
+      ]
+    },
+    {
+      "block": "map",
+      "minutes": 0.5,
+      "why": "The service and its modules.",
+      "modes": [
+        "full"
+      ]
+    },
+    {
+      "block": "layers",
+      "minutes": 0.5,
+      "why": "Which layer each file belongs to.",
+      "modes": [
+        "full"
+      ]
+    },
+    {
+      "block": "card",
+      "minutes": 0.5,
+      "why": "The module the change is centred on.",
+      "modes": [
+        "full"
+      ]
+    },
+    {
+      "block": "deps",
+      "minutes": 0.5,
+      "why": "Who imports whom; notify.js gains a config import.",
+      "modes": [
+        "full"
+      ]
+    },
+    {
+      "block": "hot",
+      "minutes": 0.25,
+      "why": "Where the code is and how often it changes.",
+      "modes": [
+        "full"
+      ]
+    },
+    {
+      "block": "rule",
+      "minutes": 1,
+      "why": "The delivery rule, before and after.",
+      "modes": [
+        "short",
+        "full"
+      ],
+      "focus": "r-free"
+    },
+    {
+      "block": "states",
+      "minutes": 0.5,
+      "why": "The order life cycle the change leaves alone.",
+      "modes": [
+        "full"
+      ]
+    },
+    {
+      "block": "seq",
+      "minutes": 0.5,
+      "why": "Placing an order, before and after.",
+      "modes": [
+        "full"
+      ]
+    },
+    {
+      "block": "path",
+      "minutes": 0.5,
+      "why": "An order request, step by step.",
+      "modes": [
+        "full"
+      ]
+    },
+    {
+      "block": "calc",
+      "minutes": 0.5,
+      "why": "One delivery cost worked through.",
+      "modes": [
+        "full"
+      ]
+    },
+    {
+      "block": "sim",
+      "minutes": 0.5,
+      "why": "Try the rule with your numbers.",
+      "modes": [
+        "full"
+      ]
+    },
+    {
+      "block": "time",
+      "minutes": 0.5,
+      "why": "The shipping window on a time axis.",
+      "modes": [
+        "full"
+      ]
+    },
+    {
+      "block": "topics",
+      "minutes": 0.5,
+      "why": "Which events exist and who listens.",
+      "modes": [
+        "full"
+      ]
+    },
+    {
+      "block": "api",
+      "minutes": 0.5,
+      "why": "The HTTP endpoints.",
+      "modes": [
+        "full"
+      ]
+    },
+    {
+      "block": "model",
+      "minutes": 0.5,
+      "why": "The stored entities.",
+      "modes": [
+        "full"
+      ]
+    },
+    {
+      "block": "lineage",
+      "minutes": 0.5,
+      "why": "How the delivery amount is computed and stored.",
+      "modes": [
+        "full"
+      ]
+    },
+    {
+      "block": "crud",
+      "minutes": 0.5,
+      "why": "Who reads and writes which store.",
+      "modes": [
+        "full"
+      ]
+    },
+    {
+      "block": "config",
+      "minutes": 0.5,
+      "why": "The settings and their values per environment.",
+      "modes": [
+        "full"
+      ]
+    },
+    {
+      "block": "fail",
+      "minutes": 0.5,
+      "why": "What happens when something goes wrong.",
+      "modes": [
+        "full"
+      ]
+    },
+    {
+      "block": "inv",
+      "minutes": 0.5,
+      "why": "What always holds.",
+      "modes": [
+        "full"
+      ]
+    },
+    {
+      "block": "docs",
+      "minutes": 0.25,
+      "why": "The README says the same.",
+      "modes": [
+        "full"
+      ]
+    },
+    {
+      "block": "layer-rule",
+      "minutes": 1,
+      "why": "The rule itself.",
+      "modes": [
+        "full"
+      ]
+    },
+    {
+      "block": "layer-hint",
+      "minutes": 1,
+      "why": "The hint mail.",
+      "modes": [
+        "full"
+      ]
+    },
+    {
+      "block": "tests",
+      "minutes": 0.5,
+      "why": "Which fragments are tested.",
+      "modes": [
+        "full"
+      ]
+    },
+    {
+      "block": "moved",
+      "minutes": 0.25,
+      "why": "Skip what only moved.",
+      "modes": [
+        "full"
+      ]
+    },
+    {
+      "block": "noise",
+      "minutes": 0.25,
+      "why": "Skip the import churn.",
+      "modes": [
+        "full"
+      ]
+    },
+    {
+      "block": "risks",
+      "minutes": 0.5,
+      "why": "What could go wrong.",
+      "modes": [
+        "full"
+      ]
+    },
+    {
+      "block": "where",
+      "minutes": 0.25,
+      "why": "Places to open in the code.",
+      "modes": [
+        "full"
+      ]
+    },
+    {
+      "block": "questions",
+      "minutes": 0.25,
+      "why": "What the change leaves open.",
+      "modes": [
+        "full"
+      ]
+    },
+    {
+      "block": "change",
+      "minutes": 0.5,
+      "why": "Where to start the next change.",
+      "modes": [
+        "full"
+      ]
+    },
+    {
+      "block": "focus",
+      "minutes": 1,
+      "why": "Where to spend review time.",
+      "modes": [
+        "short",
+        "full"
+      ]
+    }
+  ],
+  "openQuestions": [
+    "Should the hint mail be sent again when a customer adds items but is still below the threshold? Today it is sent once, when the order is created."
+  ]
+}

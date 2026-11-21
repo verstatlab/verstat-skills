@@ -1,0 +1,54 @@
+{
+  "title": "module-card",
+  "description": "One module on a card: its path and one-line role, a short summary, its public members, and what to read, skim and skip inside it. Always rendered.",
+  "type": "object",
+  "required": ["id", "type", "path", "role"],
+  "additionalProperties": false,
+  "$defs": {
+    "reading": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "minLength": 1, "description": "Part id, unique in the block; a route step can focus the item." },
+          "path": { "type": "string", "minLength": 1, "description": "A file or a symbol inside the module; the chip text when `anchor` is set." },
+          "why": { "type": "string", "minLength": 1 },
+          "anchor": { "$ref": "verstat:page#/$defs/anchor" }
+        }
+      }
+    }
+  },
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "type": { "const": "module-card" },
+    "title": { "type": "string", "description": "Heading of the block (h2)." },
+    "subtitle": { "type": "string", "description": "One line under the heading." },
+    "path": { "type": "string", "minLength": 1, "description": "The module's folder or file." },
+    "role": { "type": "string", "minLength": 1, "description": "The module's job in one line; the card's headline." },
+    "summary": { "type": "string", "minLength": 1, "description": "Two or three sentences on how it does it." },
+    "anchor": { "$ref": "verstat:page#/$defs/anchor", "description": "The module's entry point." },
+    "source": { "$ref": "verstat:page#/$defs/source" },
+    "members": {
+      "type": "array",
+      "description": "Public members: what other modules use.",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "kind"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "minLength": 1, "description": "Part id, unique in the block." },
+          "name": { "type": "string", "minLength": 1 },
+          "kind": { "type": "string", "minLength": 1, "description": "func, type, method, const, class …" },
+          "note": { "type": "string", "minLength": 1 },
+          "anchor": { "$ref": "verstat:page#/$defs/anchor" },
+          "source": { "$ref": "verstat:page#/$defs/source" }
+        }
+      }
+    },
+    "read": { "$ref": "#/$defs/reading", "description": "Read these first, carefully." },
+    "skim": { "$ref": "#/$defs/reading", "description": "Glance over these." },
+    "skip": { "$ref": "#/$defs/reading", "description": "Safe to skip for this question." }
+  }
+}

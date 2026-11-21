@@ -1,0 +1,123 @@
+{
+  "title": "calculation",
+  "description": "A computation step by step with a worked example: the inputs, each step with its expression and value, and the result. Each step with an anchor is content-checked: the anchored line must contain `literal` (the constant or expression as written in code); otherwise the step is shown as inferred. Not rendered when `steps` is empty.",
+  "type": "object",
+  "required": [
+    "id",
+    "type",
+    "steps"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "type": {
+      "const": "calculation"
+    },
+    "title": {
+      "type": "string",
+      "description": "Heading of the block (h2)."
+    },
+    "subtitle": {
+      "type": "string",
+      "description": "One line under the heading."
+    },
+    "inputs": {
+      "type": "array",
+      "description": "The example's inputs, shown above the steps.",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "value"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "value": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          }
+        }
+      }
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "expr",
+          "value"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Part id, unique in the block; a route step can focus it."
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "description": "What the step computes (`discount`)."
+          },
+          "expr": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The expression, in the code's terms (`subtotal * 0.05`)."
+          },
+          "value": {
+            "type": [
+              "string",
+              "number"
+            ],
+            "description": "The value for the example inputs."
+          },
+          "literal": {
+            "type": "string",
+            "minLength": 1,
+            "description": "A constant or expression exactly as written in code; the anchored line must contain it."
+          },
+          "anchor": {
+            "$ref": "verstat:page#/$defs/anchor",
+            "x-anchor-contains": "literal"
+          },
+          "source": {
+            "$ref": "verstat:page#/$defs/source"
+          }
+        }
+      }
+    },
+    "result": {
+      "type": "object",
+      "description": "The final line.",
+      "required": [
+        "label",
+        "value"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value": {
+          "type": [
+            "string",
+            "number"
+          ]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "title": "glossary",
+  "description": "Places the page glossary (`glossary` at the page level) as a card grid. Terms are highlighted in every page text whether or not this block is on the page; add the block to show the definitions. Not rendered when the page has no glossary.",
+  "type": "object",
+  "required": [
+    "id",
+    "type"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "type": {
+      "const": "glossary"
+    },
+    "title": {
+      "type": "string",
+      "description": "Heading of the block (h2)."
+    },
+    "subtitle": {
+      "type": "string",
+      "description": "One line under the heading."
+    }
+  }
+}

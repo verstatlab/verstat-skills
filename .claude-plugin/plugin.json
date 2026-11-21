@@ -1,0 +1,8 @@
+{
+  "name": "verstat-skills",
+  "version": "1.0.0",
+  "description": "Answers questions about code with one offline HTML page whose claims are anchored to code lines and checked by a validator: explain (how something works) and explain-pr (a pull request, for its reviewer).",
+  "author": { "name": "Verstat Lab" },
+  "license": "MIT",
+  "keywords": ["skills", "code-explanation", "code-review", "visualization"]
+}

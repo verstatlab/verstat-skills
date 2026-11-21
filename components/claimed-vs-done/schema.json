@@ -1,0 +1,86 @@
+{
+  "title": "claimed-vs-done",
+  "description": "explain-pr: what the PR description promises and where it is in the code, or that it was not found. Not rendered when `claims` is empty.",
+  "type": "object",
+  "required": [
+    "id",
+    "type",
+    "claims"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "type": {
+      "const": "claimed-vs-done"
+    },
+    "title": {
+      "type": "string",
+      "description": "Heading of the block (h2)."
+    },
+    "subtitle": {
+      "type": "string",
+      "description": "One line under the heading."
+    },
+    "claims": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "text"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Part id, unique in the block; a route step can focus it."
+          },
+          "status": {
+            "enum": [
+              "found",
+              "partial",
+              "missing"
+            ],
+            "description": "found: done as promised (“confirmed”); partial: done in part (“partly”); missing: not found in the diff (“not confirmed”)."
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The promise, quoted from the PR description (shown in quotes)."
+          },
+          "note": {
+            "type": "string",
+            "minLength": 1,
+            "description": "What was found, what is missing."
+          },
+          "anchor": {
+            "$ref": "verstat:page#/$defs/anchor",
+            "description": "Where it is done. Required unless status is missing."
+          },
+          "source": {
+            "$ref": "verstat:page#/$defs/source"
+          }
+        },
+        "anyOf": [
+          {
+            "properties": {
+              "status": {
+                "const": "missing"
+              }
+            }
+          },
+          {
+            "required": [
+              "anchor"
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

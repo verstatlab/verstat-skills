@@ -1,0 +1,12 @@
+{
+  "name": "verstat",
+  "owner": { "name": "Verstat Lab" },
+  "metadata": { "description": "Verstat plugins." },
+  "plugins": [
+    {
+      "name": "verstat-skills",
+      "source": "./",
+      "description": "explain and explain-pr: answer questions about code and pull requests with an offline HTML page anchored to code lines."
+    }
+  ]
+}

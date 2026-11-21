@@ -1,0 +1,170 @@
+{
+  "title": "data-model",
+  "description": "The entities of the question, their fields, who owns each field, and how the entities relate. One card per entity. Not rendered when `entities` is empty.",
+  "type": "object",
+  "required": [
+    "id",
+    "type",
+    "entities"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "type": {
+      "const": "data-model"
+    },
+    "title": {
+      "type": "string",
+      "description": "Heading of the block (h2)."
+    },
+    "subtitle": {
+      "type": "string",
+      "description": "One line under the heading."
+    },
+    "entities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "fields"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Part id, unique in the block; a route step can focus it."
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The entity as the code names it (`Invoice`, `invoices`)."
+          },
+          "store": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Where it lives: a table, a file, a collection, a cache key."
+          },
+          "owner": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The module or service that owns the entity as a whole."
+          },
+          "anchor": {
+            "$ref": "verstat:page#/$defs/anchor",
+            "description": "Where the entity is defined (the table DDL, the class, the type)."
+          },
+          "source": {
+            "$ref": "verstat:page#/$defs/source"
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "name"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Part id, unique in the block; a route step can focus it."
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Field name as in code."
+                },
+                "type": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Field type as the store declares it."
+                },
+                "owner": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The module that writes this field, when it differs from the entity owner."
+                },
+                "key": {
+                  "enum": [
+                    "pk",
+                    "fk"
+                  ],
+                  "description": "pk: primary key; fk: a reference to another entity."
+                },
+                "note": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "A short remark shown next to the field."
+                },
+                "highlight": {
+                  "type": "boolean",
+                  "description": "Mark a field the question is about."
+                },
+                "anchor": {
+                  "$ref": "verstat:page#/$defs/anchor"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "relations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "from",
+          "to",
+          "kind"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Part id, unique in the block; a route step can focus it."
+          },
+          "from": {
+            "type": "string",
+            "minLength": 1,
+            "description": "`name` of an entity in `entities`."
+          },
+          "to": {
+            "type": "string",
+            "minLength": 1,
+            "description": "`name` of an entity in `entities`."
+          },
+          "kind": {
+            "enum": [
+              "1-1",
+              "1-n",
+              "n-n"
+            ],
+            "description": "Cardinality from `from` to `to`."
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "description": "What the relation means, in a few words."
+          },
+          "anchor": {
+            "$ref": "verstat:page#/$defs/anchor",
+            "description": "Where the relation is enforced (the foreign key, the join)."
+          },
+          "source": {
+            "$ref": "verstat:page#/$defs/source"
+          }
+        }
+      }
+    }
+  }
+}

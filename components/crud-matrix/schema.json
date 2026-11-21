@@ -1,0 +1,136 @@
+{
+  "title": "crud-matrix",
+  "description": "Stores (tables, files, cache keys with their TTL, queues) × the actors that touch them (services, modules, jobs): who creates, reads, updates, deletes. Not rendered when `stores` or `actors` is empty. An `access` naming an actor that is not in `actors` is not drawn.",
+  "type": "object",
+  "required": [
+    "id",
+    "type",
+    "actors",
+    "stores"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "type": {
+      "const": "crud-matrix"
+    },
+    "title": {
+      "type": "string",
+      "description": "Heading of the block (h2)."
+    },
+    "subtitle": {
+      "type": "string",
+      "description": "One line under the heading."
+    },
+    "actors": {
+      "type": "array",
+      "description": "The columns: services, modules or jobs, in the order they are shown.",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Part id, unique in the block; a route step can focus it."
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "anchor": {
+            "$ref": "verstat:page#/$defs/anchor"
+          }
+        }
+      }
+    },
+    "stores": {
+      "type": "array",
+      "description": "The rows.",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "access"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Part id, unique in the block; a route step can focus it."
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Table, file, key or queue name."
+          },
+          "kind": {
+            "enum": [
+              "table",
+              "file",
+              "cache",
+              "queue",
+              "other"
+            ]
+          },
+          "key": {
+            "type": "string",
+            "minLength": 1,
+            "description": "For a cache: the key pattern (`invoice:{id}`)."
+          },
+          "ttl": {
+            "type": "string",
+            "minLength": 1,
+            "description": "For a cache: the time to live as the code sets it (`300 s`, `INVOICE_CACHE_TTL`)."
+          },
+          "anchor": {
+            "$ref": "verstat:page#/$defs/anchor",
+            "description": "Where the store is defined."
+          },
+          "access": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "actor",
+                "ops"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "actor": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "`id` of an actor in `actors`."
+                },
+                "ops": {
+                  "type": "string",
+                  "minLength": 1,
+                  "pattern": "^C?R?U?D?$",
+                  "description": "Letters from CRUD in that order: `CR`, `RU`, `D`."
+                },
+                "anchor": {
+                  "$ref": "verstat:page#/$defs/anchor",
+                  "description": "Where the actor touches the store."
+                },
+                "source": {
+                  "$ref": "verstat:page#/$defs/source"
+                }
+              }
+            },
+            "description": "One entry per place where an actor touches the store. An actor may have several entries (one per anchor); their letters are combined in its cell."
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "title": "route",
+  "description": "Places an overview of the page route (`route` at the page level): the reading order with time per step. Not rendered when the page has no route.",
+  "type": "object",
+  "required": [
+    "id",
+    "type"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "type": {
+      "const": "route"
+    },
+    "title": {
+      "type": "string",
+      "description": "Heading of the block (h2)."
+    },
+    "subtitle": {
+      "type": "string",
+      "description": "One line under the heading."
+    }
+  }
+}

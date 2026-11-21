@@ -1,0 +1,237 @@
+{
+  "title": "timeline",
+  "description": "What happens over time after an origin event: delays, timeouts, retries, TTLs and schedules on lanes. Events sit in columns by time on an axis; an event with `until` spans to that time. A hold marks an interval when a lane's state is held: it is drawn as a soft accent band and its times turn accent on the axis, so the subtitle should say what the red means. Events that can happen at any time (no `at`) go to `anytime`, shown in a dashed frame under the band of the hold they belong to. Not rendered when `events` is empty.",
+  "type": "object",
+  "required": [
+    "id",
+    "type",
+    "unit",
+    "lanes",
+    "events"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "type": {
+      "const": "timeline"
+    },
+    "title": {
+      "type": "string",
+      "description": "Heading of the block (h2)."
+    },
+    "subtitle": {
+      "type": "string",
+      "description": "One line under the heading."
+    },
+    "origin": {
+      "type": "object",
+      "required": [
+        "label"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The moment counted from (`order created`)."
+        },
+        "anchor": {
+          "$ref": "verstat:page#/$defs/anchor"
+        }
+      }
+    },
+    "unit": {
+      "enum": [
+        "ms",
+        "s",
+        "min",
+        "h",
+        "d"
+      ],
+      "description": "Unit of `at` and `until`."
+    },
+    "lanes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "label"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Part id, unique in the block; a route step can focus it."
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "lane",
+          "at",
+          "label",
+          "kind"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Part id, unique in the block; a route step can focus it."
+          },
+          "lane": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The `id` of its lane."
+          },
+          "at": {
+            "type": "number",
+            "minimum": 0
+          },
+          "until": {
+            "type": "number",
+            "minimum": 0,
+            "description": "End of a span (a TTL, a wait)."
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "description": "One line under the label: what it does or why."
+          },
+          "kind": {
+            "enum": [
+              "event",
+              "delay",
+              "ttl",
+              "timeout",
+              "retry",
+              "schedule"
+            ]
+          },
+          "failure": {
+            "type": "boolean",
+            "description": "The event is a failure path."
+          },
+          "anchor": {
+            "$ref": "verstat:page#/$defs/anchor"
+          },
+          "source": {
+            "$ref": "verstat:page#/$defs/source"
+          }
+        }
+      }
+    },
+    "holds": {
+      "type": "array",
+      "description": "Intervals when the state on a lane is held (locked, reserved, waiting): a soft accent band over those columns.",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "lane",
+          "from",
+          "until",
+          "label"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Part id, unique in the block; a route step can focus it."
+          },
+          "lane": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The `id` of the lane whose state is held."
+          },
+          "from": {
+            "type": "number",
+            "minimum": 0
+          },
+          "until": {
+            "type": "number",
+            "minimum": 0
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "description": "What is held (`status held`)."
+          },
+          "anchor": {
+            "$ref": "verstat:page#/$defs/anchor"
+          },
+          "source": {
+            "$ref": "verstat:page#/$defs/source"
+          }
+        }
+      }
+    },
+    "anytime": {
+      "type": "array",
+      "description": "Events with no fixed time (a manual action, a failed write), shown in a dashed frame under the timeline.",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "label"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Part id, unique in the block; a route step can focus it."
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "description": "What happens then."
+          },
+          "during": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The `id` of the hold it can happen in; the frame sits under that hold's columns. Without it, or when it names no hold, the frame spans the whole axis."
+          },
+          "failure": {
+            "type": "boolean",
+            "description": "The event is a failure path."
+          },
+          "anchor": {
+            "$ref": "verstat:page#/$defs/anchor"
+          },
+          "source": {
+            "$ref": "verstat:page#/$defs/source"
+          }
+        }
+      }
+    },
+    "note": {
+      "type": "string",
+      "minLength": 1,
+      "description": "One line above the grid."
+    }
+  }
+}

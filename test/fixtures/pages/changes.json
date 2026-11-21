@@ -1,0 +1,158 @@
+{
+  "schema": "verstat.page/1",
+  "skill": "explain-pr",
+  "question": "What does the PR “Refund after shipping” change?",
+  "repos": {
+    "shop": { "sha": "0000000", "path": "." },
+    "shop@base": { "sha": "0000000", "path": "." }
+  },
+  "glossary": [
+    {
+      "term": "refund",
+      "code": "refund",
+      "aliases": ["refunds", "refunded"],
+      "definition": "Returning the money for a paid or shipped order through the payment gateway.",
+      "anchor": { "repo": "shop", "path": "src/payments/capture.js", "find": "function refund(gateway, order) {" },
+      "source": "code"
+    }
+  ],
+  "blocks": [
+    {
+      "id": "answer",
+      "type": "brief",
+      "answer": "The PR allows refunds for shipped orders and moves the amount calculation into a separate module.",
+      "pr": { "title": "Refund after shipping", "head": "feature/refund-shipped", "base": "main", "additions": 42, "deletions": 17, "files": 3, "commits": 3 }
+    },
+    {
+      "id": "claims",
+      "type": "claimed-vs-done",
+      "title": "What the PR description promises",
+      "claims": [
+        {
+          "id": "c-refund",
+          "status": "found",
+          "text": "Shipped orders can now be refunded",
+          "note": "refund accepts the shipped status along with paid.",
+          "anchor": { "repo": "shop", "path": "src/payments/capture.js", "find": "order.status !== 'shipped'" },
+          "source": "code"
+        },
+        {
+          "id": "c-test",
+          "status": "partial",
+          "text": "Refund tests added",
+          "note": "There is a charge test; there is no separate test for refunding a shipped order.",
+          "anchor": { "repo": "shop", "path": "test/capture.test.js", "find": "async function capturesAfterOneFailure() {" },
+          "source": "test"
+        },
+        {
+          "id": "c-retry",
+          "status": "found",
+          "text": "A refund is retried the same way as a charge",
+          "note": "The retries look shared, but the refund code shows no loop of its own.",
+          "anchor": { "repo": "shop", "path": "src/payments/capture.js", "find": "return gateway.refund(order.paymentId)" },
+          "source": "inferred"
+        },
+        {
+          "id": "c-notify",
+          "status": "missing",
+          "text": "The client gets a refund email",
+          "note": "The diff has no changes in the mailer."
+        }
+      ]
+    },
+    {
+      "id": "commits",
+      "type": "commits",
+      "subtitle": "Clicking a commit dims the change fragments of other commits.",
+      "commits": [
+        {
+          "id": "k1",
+          "sha": "a1b2c3d4e5f60718293a4b5c6d7e8f9012345678",
+          "repo": "shop",
+          "message": "refund: allow shipped orders",
+          "intent": "The main change of the PR.",
+          "additions": 3,
+          "deletions": 1,
+          "files": ["src/payments/capture.js"]
+        },
+        {
+          "id": "k2",
+          "sha": "b2c3d4e5f60718293a4b5c6d7e8f901234567890",
+          "repo": "shop",
+          "message": "orders: move total out, cover capture",
+          "intent": "A move with no behaviour change, and a test.",
+          "additions": 39,
+          "deletions": 16,
+          "files": ["src/orders/order.js", "test/capture.test.js"]
+        },
+        {
+          "id": "k3",
+          "sha": "c3d4e5f",
+          "message": "Merge branch 'main' into feature/refund-shipped",
+          "intent": "A merge, no changes of its own.",
+          "files": []
+        }
+      ]
+    },
+    {
+      "id": "notes",
+      "type": "changes",
+      "repo": "shop",
+      "base": "shop@base",
+      "files": []
+    },
+    {
+      "id": "moved",
+      "type": "moved-code",
+      "items": [
+        {
+          "id": "moved-1",
+          "title": "function total(items) {",
+          "from": { "path": "src/orders/order.js", "start": 12, "end": 14 },
+          "to": { "path": "src/orders/total.js", "start": 1, "end": 3 },
+          "lines": 3,
+          "body": "function total(items) {\n  return items.reduce((sum, item) => sum + item.price * item.qty, 0);\n}"
+        }
+      ]
+    },
+    {
+      "id": "noise",
+      "type": "noise",
+      "items": [
+        {
+          "id": "noise-imports",
+          "kind": "imports",
+          "title": "Imports",
+          "paths": ["src/orders/order.js", "test/capture.test.js"],
+          "lines": 2,
+          "body": "src/orders/order.js\n+ const { total } = require('./total');\ntest/capture.test.js\n+ const { createOrder } = require('../src/orders/order');"
+        },
+        {
+          "id": "noise-whitespace",
+          "kind": "whitespace",
+          "title": "Whitespace and formatting",
+          "paths": ["src/payments/capture.js"],
+          "lines": 1,
+          "body": "src/payments/capture.js\n+ "
+        },
+        {
+          "id": "noise-generated",
+          "kind": "generated",
+          "title": "Generated files",
+          "paths": ["package-lock.json"],
+          "lines": 14,
+          "body": "package-lock.json\n- \"version\": \"1.0.0\",\n+ \"version\": \"1.1.0\",\n…",
+          "note": "The package version is bumped; the dependencies are the same."
+        }
+      ]
+    }
+  ],
+  "route": [
+    { "block": "answer", "minutes": 1, "why": "The gist of the PR.", "modes": ["short", "full"] },
+    { "block": "claims", "minutes": 2, "why": "What of the promised is done.", "modes": ["short", "full"] },
+    { "block": "commits", "minutes": 1, "why": "Branch history.", "modes": ["full"] },
+    { "block": "notes", "minutes": 3, "why": "The diff of each file.", "modes": ["full"] },
+    { "block": "moved", "minutes": 1, "why": "What was only moved.", "modes": ["full"] },
+    { "block": "noise", "focus": "noise-generated", "minutes": 1, "why": "What you can skip.", "modes": ["full"] }
+  ]
+}

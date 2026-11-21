@@ -1,0 +1,110 @@
+{
+  "title": "test-coverage",
+  "description": "Behaviours → the tests that pin them down. A behaviour without tests is shown as “not covered”: list it rather than leave it out. Not rendered when `behaviors` is empty. With `mode: \"diff\"` (explain-pr) the rows are the `read` and `skim` fragments of the page's `changes` blocks, each with its test or “not covered”; the block then lists the test files the change touches in `files` instead of `behaviors`.",
+  "type": "object",
+  "required": [
+    "id",
+    "type"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "type": {
+      "const": "test-coverage"
+    },
+    "title": {
+      "type": "string",
+      "description": "Heading of the block (h2)."
+    },
+    "subtitle": {
+      "type": "string",
+      "description": "One line under the heading."
+    },
+    "mode": {
+      "enum": [
+        "explain",
+        "diff"
+      ],
+      "description": "`explain` (default): rows are `behaviors`. `diff`: rows are the fragments of the `changes` blocks; give `files`, not `behaviors`."
+    },
+    "files": {
+      "type": "array",
+      "description": "`mode: \"diff\"`: the test files the change touches (they need no layer). `repo` is the head repo, needed when the page diffs more than one.",
+      "items": {
+        "type": "object",
+        "required": [
+          "path"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "repo": {
+            "type": "string",
+            "minLength": 1
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "behaviors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "behavior",
+          "tests"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Part id, unique in the block; a route step can focus it."
+          },
+          "behavior": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The behaviour, in one sentence."
+          },
+          "tests": {
+            "type": "array",
+            "description": "Tests that fail when the behaviour breaks; empty when none do.",
+            "items": {
+              "type": "object",
+              "required": [
+                "name",
+                "anchor"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Test name as written."
+                },
+                "anchor": {
+                  "$ref": "verstat:page#/$defs/anchor",
+                  "description": "The test."
+                }
+              }
+            }
+          },
+          "note": {
+            "type": "string",
+            "minLength": 1,
+            "description": "For an uncovered behaviour: why, or what would cover it."
+          },
+          "source": {
+            "$ref": "verstat:page#/$defs/source"
+          }
+        }
+      }
+    }
+  }
+}

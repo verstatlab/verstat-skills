@@ -1,0 +1,104 @@
+.vs-cm { display: flex; flex-direction: column; border-top: var(--vs-rw) solid var(--vs-rule-strong); }
+.vs-cm-row {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  padding: 0;
+  background: transparent;
+  color: var(--vs-ink);
+  border: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.vs-cm-graph { position: relative; flex: none; align-self: stretch; }
+.vs-cm-svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: hidden; }
+.vs-cm-line { fill: none; stroke-width: 2; }
+.vs-cm-dot { fill: var(--vs-cm-lane); stroke-width: 2; }
+.vs-cm-dot-hollow { fill: var(--vs-bg); }
+.vs-cm-dot-external { stroke-dasharray: 2 2; }
+.vs-cm-dot.vs-cm-dot-on { fill: var(--vs-accent); stroke: var(--vs-accent) !important; stroke-dasharray: none; }
+.vs-cm-body {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 76px 150px 1fr auto;
+  gap: 12px;
+  align-items: baseline;
+  margin-left: 12px;
+  padding: 11px 8px;
+  border-bottom: 1px solid var(--vs-rule);
+}
+.vs-cm-norepo .vs-cm-body { grid-template-columns: 76px 1fr auto; }
+.vs-cm-row:hover .vs-cm-body { background: color-mix(in oklab, var(--vs-surface) 60%, transparent); }
+.vs-cm-row[aria-pressed="true"] .vs-cm-body { background: var(--vs-surface); }
+.vs-cm-sha, .vs-cm-repo, .vs-cm-stat { font-family: var(--vs-mono); font-size: 12px; color: var(--vs-muted); }
+.vs-cm-repo { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vs-cm-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.vs-cm-msg { font-family: var(--vs-mono); font-size: 13px; font-weight: 700; overflow-wrap: anywhere; }
+.vs-cm-external .vs-cm-msg { color: var(--vs-muted); }
+.vs-cm-tag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 0 5px;
+  border: 1px solid var(--vs-rule-strong);
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--vs-muted);
+  vertical-align: 1px;
+}
+.vs-cm-intent { font-size: 13px; color: var(--vs-muted); }
+.vs-cm-stat { white-space: nowrap; }
+
+.vs-acc { border-top: var(--vs-rw) solid var(--vs-rule-strong); }
+.vs-acc-item { border-bottom: 1px solid var(--vs-rule); }
+.vs-acc-item.vs-focus { outline-offset: -2px; }
+.vs-acc-head {
+  display: grid;
+  grid-template-columns: 96px 1fr auto 20px;
+  gap: 12px;
+  align-items: baseline;
+  width: 100%;
+  padding: 12px 0;
+  background: transparent;
+  color: var(--vs-ink);
+  border: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.vs-acc-head:hover .vs-acc-title > span:first-child { color: var(--vs-accent-ink); }
+.vs-acc-kind { font-family: var(--vs-mono); font-size: 11px; letter-spacing: .04em; color: var(--vs-muted); }
+.vs-acc-title { display: flex; flex-direction: column; gap: 2px; min-width: 0; font-size: 15px; font-weight: 600; }
+.vs-acc-path { font-family: var(--vs-mono); font-size: 12px; font-weight: 400; color: var(--vs-muted); overflow-wrap: anywhere; }
+.vs-acc-count { font-family: var(--vs-mono); font-size: 12px; color: var(--vs-muted); white-space: nowrap; }
+.vs-acc-sign { font-family: var(--vs-mono); font-size: 16px; text-align: center; color: var(--vs-muted); }
+.vs-acc-body { padding: 0 0 14px 108px; display: flex; flex-direction: column; gap: 8px; }
+.vs-acc-body[hidden] { display: none; }
+.vs-acc-note { font-size: 14px; color: var(--vs-muted); }
+.vs-acc-pre {
+  margin: 0;
+  padding: 10px 12px;
+  background: var(--vs-code-bg);
+  border: 1px solid var(--vs-rule);
+  border-radius: var(--vs-r);
+  font-family: var(--vs-mono);
+  font-size: 12px;
+  line-height: 1.6;
+  overflow-x: auto;
+}
+.vs-acc-line { display: block; min-height: 1.6em; white-space: pre; min-width: 100%; width: max-content; }
+.vs-acc-add { background: var(--vs-add-soft); }
+.vs-acc-del { background: var(--vs-del-soft); }
+.vs-acc-mark { display: inline-block; width: 18px; font-weight: 700; }
+.vs-acc-path-line { color: var(--vs-muted); font-weight: 600; }
+
+@media (max-width: 720px) {
+  .vs-cm-body { grid-template-columns: 64px 1fr auto; row-gap: 4px; gap: 8px; margin-left: 6px; }
+  .vs-cm-norepo .vs-cm-body { grid-template-columns: 64px 1fr; }
+  .vs-cm-text { grid-column: 1 / -1; grid-row: 2; }
+  .vs-acc-head { grid-template-columns: 1fr auto 20px; }
+  .vs-acc-kind { grid-column: 1 / -1; }
+  .vs-acc-body { padding-left: 0; }
+}

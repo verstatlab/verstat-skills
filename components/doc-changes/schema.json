@@ -1,0 +1,46 @@
+{
+  "title": "doc-changes",
+  "description": "explain-pr: the changed Markdown documents (.md, .markdown), fragment by fragment, rendered as formatted Markdown with added parts marked `+` and removed parts `−`, and a switch to the raw diff. The agent writes `path`, an optional `summary` and the `fragments` it describes; the engine reads the diff between `base` and `repo` from git (three lines of context, as `git diff` prints it), embeds both versions of each file and puts them on the page. A fragment is one hunk of that diff, picked by `find`. A hunk no fragment describes is still shown, titled by its section heading. Validation fails when a path is not Markdown, is not changed, is listed twice, or when `find` is in no hunk, in several hunks, or in a hunk another fragment already took.",
+  "type": "object",
+  "required": ["id", "type", "repo", "base", "files"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "type": { "const": "doc-changes" },
+    "title": { "type": "string", "description": "Heading of the block (h2)." },
+    "subtitle": { "type": "string", "description": "One line under the heading." },
+    "repo": { "type": "string", "minLength": 1, "description": "The head side: a key of `repos`, e.g. \"shop\"." },
+    "base": { "type": "string", "minLength": 1, "description": "The base side: a key of `repos`, e.g. \"shop@base\". Its sha must exist in the head checkout." },
+    "files": {
+      "type": "array",
+      "minItems": 1,
+      "description": "The changed Markdown files this block shows, one tab each. These paths count as shown on the page.",
+      "items": {
+        "type": "object",
+        "required": ["id", "path"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "minLength": 1, "description": "Part id, unique in the block; a route step can focus it." },
+          "path": { "type": "string", "minLength": 1, "description": "File path from the repo root, as `verstat facts diff` prints it." },
+          "summary": { "type": "string", "minLength": 1, "description": "What changed in the document, in one sentence." },
+          "fragments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "find", "kind", "title"],
+              "additionalProperties": false,
+              "properties": {
+                "id": { "type": "string", "minLength": 1, "description": "Part id; a route step can focus the fragment." },
+                "find": { "type": "string", "minLength": 1, "description": "Text from one line of the hunk: an added, removed or context line. It must occur in exactly one hunk of the file." },
+                "kind": { "enum": ["read", "skim", "skip"], "description": "read — the meaning changed (open by default); skim — small or mechanical; skip — wording, links, formatting." },
+                "title": { "type": "string", "minLength": 1, "description": "What the fragment changes, in a few words." },
+                "summary": { "type": "string", "minLength": 1, "description": "One or two sentences on what the change says." },
+                "commit": { "type": "string", "pattern": "^[0-9a-f]{7,64}$", "description": "The commit that made the change; a click on that commit in `commits` keeps it, others dim it." }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

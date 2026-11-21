@@ -1,0 +1,285 @@
+{
+  "schema": "verstat.page/1",
+  "skill": "explain-pr",
+  "question": "What does the PR “Refund before delivery” change?",
+  "repos": {
+    "checkout": {
+      "sha": "0000000",
+      "path": "."
+    },
+    "checkout@base": {
+      "sha": "0000000",
+      "path": "."
+    }
+  },
+  "blocks": [
+    {
+      "id": "answer",
+      "type": "brief",
+      "answer": "The PR lets shipped orders be refunded through a carrier recall, extends the refund window to 14 days, removes reopen and publishes order.paid after payment.",
+      "pr": {
+        "title": "Refund before delivery",
+        "head": "feature/refund-shipped",
+        "base": "main",
+        "additions": 9,
+        "deletions": 9,
+        "files": 5,
+        "commits": 2
+      }
+    },
+    {
+      "id": "commits",
+      "type": "commits",
+      "commits": [
+        {
+          "id": "k1",
+          "sha": "aaaaaaa",
+          "message": "refunds: shipped orders, 14-day window",
+          "intent": "State and refund rules, with tests.",
+          "files": [
+            "src/orders/states.js",
+            "src/refunds/policy.js",
+            "test/orders/states.test.js",
+            "test/refunds/policy.test.js"
+          ]
+        },
+        {
+          "id": "k2",
+          "sha": "bbbbbbb",
+          "message": "api: charge and publish order.paid",
+          "intent": "Payment via charge and the event after it.",
+          "files": [
+            "src/api/orders.js"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ch-rules",
+      "type": "changes",
+      "repo": "checkout",
+      "base": "checkout@base",
+      "title": "Rules: order states and refunds",
+      "subtitle": "Rules first — the API only uses them.",
+      "files": [
+        {
+          "id": "f-states",
+          "path": "src/orders/states.js",
+          "fragments": [
+            {
+              "id": "fr-pay",
+              "kind": "skip",
+              "title": "Trigger capture → pay",
+              "description": "The payment trigger is renamed; the transition is the same.",
+              "function": "TRANSITIONS",
+              "commit": "aaaaaaa",
+              "at": {
+                "find": "['pending', 'pay', 'paid'],"
+              }
+            },
+            {
+              "id": "fr-reopen",
+              "kind": "read",
+              "title": "No way back to pending",
+              "description": "A paid order can no longer go back to payment.",
+              "function": "TRANSITIONS",
+              "commit": "aaaaaaa",
+              "at": {
+                "find": "['paid', 'reopen', 'pending'],",
+                "side": "base"
+              },
+              "notes": [
+                {
+                  "id": "n-reopen",
+                  "at": {
+                    "find": "['paid', 'reopen', 'pending'],",
+                    "side": "base"
+                  },
+                  "text": "Whoever called reopen now gets “no transition”."
+                }
+              ]
+            },
+            {
+              "id": "fr-refund",
+              "kind": "read",
+              "title": "Refund of a shipped order",
+              "description": "New transition shipped → refunded.",
+              "function": "TRANSITIONS",
+              "commit": "aaaaaaa",
+              "at": {
+                "find": "['shipped', 'refund', 'refunded'],"
+              },
+              "notes": [
+                {
+                  "id": "n-refund",
+                  "at": {
+                    "find": "['shipped', 'refund', 'refunded'],"
+                  },
+                  "text": "The refundAllowed check in move applies to this transition too."
+                }
+              ],
+              "test": {
+                "name": "a shipped order can be refunded",
+                "description": "move(shipped, 'refund') gives refunded.",
+                "anchor": {
+                  "repo": "checkout",
+                  "path": "test/orders/states.test.js",
+                  "find": "test('a shipped order can be refunded'",
+                  "findEnd": "});"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "f-policy",
+          "path": "src/refunds/policy.js",
+          "fragments": [
+            {
+              "id": "fr-policy",
+              "kind": "read",
+              "title": "Recall and the 14-day window",
+              "description": "A shipped order is recalled from the carrier; a coupon no longer leads to manual review; the window is 14 days.",
+              "function": "refundDecision",
+              "commit": "aaaaaaa",
+              "notes": [
+                {
+                  "id": "n-recall",
+                  "at": {
+                    "find": "return 'carrier-recall';"
+                  },
+                  "text": "Checked before the window: a shipped order has no deliveredAt yet."
+                },
+                {
+                  "id": "n-coupon",
+                  "at": {
+                    "find": "if (order.coupon) return 'manual';",
+                    "side": "base"
+                  },
+                  "text": "The coupon rule was removed silently — the PR description says nothing about it."
+                }
+              ],
+              "test": {
+                "name": "the automatic refund window is 14 days",
+                "description": "14 days — auto, 15 — reject.",
+                "anchor": {
+                  "repo": "checkout",
+                  "path": "test/refunds/policy.test.js",
+                  "find": "test('the automatic refund window is 14 days'",
+                  "findEnd": "});"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ch-api",
+      "type": "changes",
+      "repo": "checkout",
+      "base": "checkout@base",
+      "title": "Payment API",
+      "subtitle": "How the new rules reach the request.",
+      "files": [
+        {
+          "id": "f-orders",
+          "path": "src/api/orders.js",
+          "fragments": [
+            {
+              "id": "fr-charge",
+              "kind": "skim",
+              "title": "capture → charge",
+              "description": "The payment gateway is called through a new method.",
+              "function": "payOrder",
+              "commit": "bbbbbbb",
+              "at": {
+                "find": "const result = await payments.charge(order);"
+              }
+            },
+            {
+              "id": "fr-publish",
+              "kind": "read",
+              "title": "The order.paid event",
+              "description": "After the paid order is saved, order.paid is published with chargeId.",
+              "function": "payOrder",
+              "commit": "bbbbbbb",
+              "at": {
+                "find": "const paid = move(order, 'pay');",
+                "findEnd": "bus.publish('order.paid'"
+              },
+              "notes": [
+                {
+                  "id": "n-publish",
+                  "at": {
+                    "find": "bus.publish('order.paid'"
+                  },
+                  "text": "Publish after save: if the bus fails, the payment is already saved and the event is lost."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tests",
+      "type": "test-coverage",
+      "mode": "diff",
+      "title": "Test coverage",
+      "files": [
+        {
+          "path": "test/orders/states.test.js"
+        },
+        {
+          "path": "test/refunds/policy.test.js"
+        }
+      ]
+    }
+  ],
+  "route": [
+    {
+      "block": "answer",
+      "minutes": 1,
+      "why": "The gist of the PR.",
+      "modes": [
+        "short",
+        "full"
+      ]
+    },
+    {
+      "block": "commits",
+      "minutes": 1,
+      "why": "Branch history.",
+      "modes": [
+        "full"
+      ]
+    },
+    {
+      "block": "ch-rules",
+      "focus": "fr-refund",
+      "minutes": 3,
+      "why": "New rules.",
+      "modes": [
+        "short",
+        "full"
+      ]
+    },
+    {
+      "block": "ch-api",
+      "minutes": 2,
+      "why": "Where the rules are called.",
+      "modes": [
+        "full"
+      ]
+    },
+    {
+      "block": "tests",
+      "minutes": 1,
+      "why": "What the tests pin down.",
+      "modes": [
+        "full"
+      ]
+    }
+  ]
+}

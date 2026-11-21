@@ -1,0 +1,38 @@
+{
+  "title": "fixture-diff",
+  "description": "Test-only block: rows whose parts carry diff-mode marks, to exercise the client's Before / After / Diff contract.",
+  "type": "object",
+  "required": ["id", "type", "rows"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "type": { "const": "fixture-diff" },
+    "title": { "type": "string" },
+    "subtitle": { "type": "string" },
+    "rows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "from", "to"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "from": { "type": "string", "minLength": 1 },
+          "to": { "type": "string", "minLength": 1 },
+          "label": { "type": "string" },
+          "anchor": { "$ref": "verstat:page#/$defs/anchor" },
+          "change": { "$ref": "verstat:page#/$defs/change" },
+          "before": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "to": { "type": "string", "minLength": 1 },
+              "label": { "type": "string" },
+              "anchor": { "$ref": "verstat:page#/$defs/anchor" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

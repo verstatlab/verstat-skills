@@ -1,0 +1,60 @@
+{
+  "title": "code-anchor",
+  "description": "A list of places in code to look at: each row is an anchor (click opens the whole file at its lines) with a short note. Not rendered when `items` is empty.",
+  "type": "object",
+  "required": [
+    "id",
+    "type",
+    "items"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "type": {
+      "const": "code-anchor"
+    },
+    "title": {
+      "type": "string",
+      "description": "Heading of the block (h2)."
+    },
+    "subtitle": {
+      "type": "string",
+      "description": "One line under the heading."
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "anchor"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Part id, unique in the block; a route step can focus it."
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Chip text; defaults to file:line."
+          },
+          "text": {
+            "type": "string"
+          },
+          "anchor": {
+            "$ref": "verstat:page#/$defs/anchor"
+          },
+          "source": {
+            "$ref": "verstat:page#/$defs/source"
+          }
+        }
+      }
+    }
+  }
+}

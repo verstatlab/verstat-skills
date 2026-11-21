@@ -1,0 +1,149 @@
+{
+  "title": "sequence",
+  "description": "Who calls whom, in order: participants as columns, one row per message, with a player that steps through them every 1.4 s. A route step can focus a step; the player moves there. Not rendered when `steps` is empty.",
+  "type": "object",
+  "required": [
+    "id",
+    "type",
+    "participants",
+    "steps"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "type": {
+      "const": "sequence"
+    },
+    "title": {
+      "type": "string",
+      "description": "Heading of the block (h2)."
+    },
+    "subtitle": {
+      "type": "string",
+      "description": "One line under the heading."
+    },
+    "participants": {
+      "type": "array",
+      "description": "Columns, left to right in the order of the first call.",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "label"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Part id, unique in the block; a route step can focus it."
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Column heading (`API`, `Payment gateway`)."
+          },
+          "kind": {
+            "enum": [
+              "actor",
+              "service",
+              "store",
+              "queue",
+              "external"
+            ],
+            "description": "What the participant is; shown as a small tag."
+          }
+        }
+      }
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "from",
+          "to",
+          "label"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Part id, unique in the block; a route step can focus it."
+          },
+          "from": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The `id` of the sending participant."
+          },
+          "to": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The `id` of the receiving participant (may equal `from` for a call to itself)."
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The message as code names it (`charge(order)`, `402 declined`)."
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "description": "One sentence the player shows while this step is current."
+          },
+          "kind": {
+            "enum": [
+              "call",
+              "return",
+              "error"
+            ],
+            "description": "call (solid), return (dashed), error (accent ink). Defaults to call."
+          },
+          "anchor": {
+            "$ref": "verstat:page#/$defs/anchor",
+            "description": "The line that sends the message."
+          },
+          "handler": {
+            "$ref": "verstat:page#/$defs/anchor",
+            "description": "The line that handles it on the receiving side."
+          },
+          "source": {
+            "$ref": "verstat:page#/$defs/source"
+          },
+          "change": {
+            "$ref": "verstat:page#/$defs/change"
+          },
+          "before": {
+            "type": "object",
+            "description": "Old values of a `changed` step.",
+            "required": [],
+            "additionalProperties": false,
+            "properties": {
+              "from": {
+                "type": "string",
+                "minLength": 1
+              },
+              "to": {
+                "type": "string",
+                "minLength": 1
+              },
+              "label": {
+                "type": "string",
+                "minLength": 1
+              },
+              "anchor": {
+                "$ref": "verstat:page#/$defs/anchor",
+                "description": "Into the base repo. A changed old value without `before.anchor` is shown as inferred, with no code chip."
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

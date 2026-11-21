@@ -1,0 +1,142 @@
+{
+  "title": "brief",
+  "description": "The answer to the page question in 1–2 sentences plus 3–5 key facts, visible without scrolling. Put it first. For a pull request (explain-pr) add `pr` and `numbers`.",
+  "type": "object",
+  "required": [
+    "id",
+    "type",
+    "answer"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "type": {
+      "const": "brief"
+    },
+    "title": {
+      "type": "string",
+      "description": "The h1; defaults to the PR title or the page question."
+    },
+    "subtitle": {
+      "type": "string",
+      "description": "One line under the heading."
+    },
+    "answer": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The answer in one or two sentences."
+    },
+    "facts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "text"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Part id, unique in the block; a route step can focus it."
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1
+          },
+          "anchor": {
+            "$ref": "verstat:page#/$defs/anchor"
+          },
+          "source": {
+            "$ref": "verstat:page#/$defs/source"
+          }
+        }
+      }
+    },
+    "pr": {
+      "type": "object",
+      "description": "explain-pr: the pull request this page explains.",
+      "required": [
+        "title",
+        "head",
+        "base",
+        "additions",
+        "deletions"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "description": "PR title; becomes the h1."
+        },
+        "head": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Source branch."
+        },
+        "base": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Target branch."
+        },
+        "additions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "deletions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "files": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "commits": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "numbers": {
+      "type": "array",
+      "description": "Key numbers shown large (explain-pr).",
+      "items": {
+        "type": "object",
+        "required": [
+          "value",
+          "label"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Part id, unique in the block; a route step can focus it."
+          },
+          "value": {
+            "type": [
+              "string",
+              "number"
+            ]
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1
+          },
+          "accent": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "note": {
+      "type": "string",
+      "description": "A paragraph after the answer."
+    }
+  }
+}

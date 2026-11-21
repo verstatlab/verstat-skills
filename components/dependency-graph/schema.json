@@ -1,0 +1,59 @@
+{
+  "title": "dependency-graph",
+  "description": "Imports and calls between modules, laid out as a graph. Clusters (a package, a layer) are drawn as frames; cycles are found by the block itself and drawn in accent. Not rendered when `nodes` is empty.",
+  "type": "object",
+  "required": ["id", "type", "nodes"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "type": { "const": "dependency-graph" },
+    "title": { "type": "string", "description": "Heading of the block (h2)." },
+    "subtitle": { "type": "string", "description": "One line under the heading." },
+    "clusters": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "label"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "minLength": 1, "description": "Part id, shared with node ids; a route step can focus the frame." },
+          "label": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "label"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "minLength": 1, "description": "Part id, unique in the block; edges and route steps name it." },
+          "label": { "type": "string", "minLength": 1, "description": "The module, usually its path." },
+          "cluster": { "type": "string", "minLength": 1, "description": "The `id` of a cluster; an unknown id draws the node without a frame." },
+          "note": { "type": "string", "minLength": 1 },
+          "highlight": { "type": "boolean", "description": "A module the question is about." },
+          "anchors": { "type": "array", "items": { "$ref": "verstat:page#/$defs/anchor" } },
+          "source": { "$ref": "verstat:page#/$defs/source" }
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["from", "to"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "minLength": 1, "description": "Part id; give one when a route step should focus the edge." },
+          "from": { "type": "string", "minLength": 1, "description": "The `id` of the module that imports or calls; an edge naming an unknown module is not drawn." },
+          "to": { "type": "string", "minLength": 1, "description": "The `id` of the module imported or called; an edge naming an unknown module is not drawn." },
+          "kind": { "enum": ["import", "call"], "description": "`import` (default, solid) or `call` (dashed)." },
+          "label": { "type": "string", "minLength": 1 },
+          "anchor": { "$ref": "verstat:page#/$defs/anchor", "description": "The import or call site." },
+          "source": { "$ref": "verstat:page#/$defs/source" }
+        }
+      }
+    }
+  }
+}

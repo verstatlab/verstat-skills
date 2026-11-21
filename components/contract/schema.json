@@ -1,0 +1,131 @@
+{
+  "title": "contract",
+  "description": "Endpoints between services: method, path, headers, request and response payloads, failures. The reader picks an endpoint to see its detail. Not rendered when `endpoints` is empty.",
+  "type": "object",
+  "required": [
+    "id",
+    "type",
+    "endpoints"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "type": {
+      "const": "contract"
+    },
+    "title": {
+      "type": "string",
+      "description": "Heading of the block (h2)."
+    },
+    "subtitle": {
+      "type": "string",
+      "description": "One line under the heading."
+    },
+    "endpoints": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "method",
+          "path"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Part id, unique in the block; a route step can focus it."
+          },
+          "method": {
+            "type": "string",
+            "minLength": 1,
+            "description": "HTTP method, or the verb of a non-HTTP call (`PUBLISH`, `RPC`)."
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Path, topic or procedure name."
+          },
+          "between": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Caller → callee (`checkout → billing`)."
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "description": "What the endpoint does, in one or two sentences."
+          },
+          "headers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "name"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "value": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "note": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          },
+          "request": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Request payload as text (JSON, a schema sketch)."
+          },
+          "response": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Success response as text."
+          },
+          "failures": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "code",
+                "text"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Status or error code."
+                },
+                "text": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "When it happens."
+                }
+              }
+            }
+          },
+          "anchor": {
+            "$ref": "verstat:page#/$defs/anchor",
+            "description": "The handler."
+          },
+          "source": {
+            "$ref": "verstat:page#/$defs/source"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,881 @@
+{
+  "schema": "verstat.page/1",
+  "skill": "explain-data",
+  "question": "Where does the invoice amount come from, who changes it and what happens if the payment fails?",
+  "repos": {
+    "billing": {
+      "sha": "0000000",
+      "path": "."
+    }
+  },
+  "glossary": [
+    {
+      "term": "invoice",
+      "code": "invoice",
+      "aliases": [
+        "invoices",
+        "invoiced",
+        "invoicing"
+      ],
+      "definition": "What the client has to pay: the amount in cents, the currency and the status open → paid.",
+      "anchor": {
+        "repo": "billing",
+        "path": "db/schema.sql",
+        "find": "CREATE TABLE invoices ("
+      },
+      "source": "code"
+    },
+    {
+      "term": "idempotency key",
+      "code": "Idempotency-Key",
+      "aliases": [
+        "idempotency keys",
+        "idempotency-key"
+      ],
+      "definition": "A payment header; a retry with the same key returns the first payment instead of charging again.",
+      "anchor": {
+        "repo": "billing",
+        "path": "src/http/routes.js",
+        "find": "const key = req.get('Idempotency-Key');"
+      }
+    }
+  ],
+  "blocks": [
+    {
+      "id": "model",
+      "type": "data-model",
+      "title": "Invoice and payments",
+      "subtitle": "The mark on the right is the module that writes the field.",
+      "entities": [
+        {
+          "id": "e-invoice",
+          "name": "Invoice",
+          "store": "invoices (Postgres)",
+          "owner": "invoice.js",
+          "anchor": {
+            "repo": "billing",
+            "path": "db/schema.sql",
+            "find": "CREATE TABLE invoices (",
+            "findEnd": ");"
+          },
+          "source": "code",
+          "fields": [
+            {
+              "name": "id",
+              "type": "BIGSERIAL",
+              "key": "pk"
+            },
+            {
+              "name": "customer_id",
+              "type": "BIGINT"
+            },
+            {
+              "id": "f-total",
+              "name": "total_cents",
+              "type": "INTEGER",
+              "owner": "invoice.js",
+              "highlight": true,
+              "note": "The sum of the lines, rounded to the cent.",
+              "anchor": {
+                "repo": "billing",
+                "path": "db/schema.sql",
+                "find": "total_cents INTEGER NOT NULL"
+              }
+            },
+            {
+              "name": "currency",
+              "type": "CHAR(3)",
+              "owner": "config.js"
+            },
+            {
+              "name": "status",
+              "type": "TEXT",
+              "owner": "payments.js",
+              "note": "open → paid; void deletes the row."
+            }
+          ]
+        },
+        {
+          "id": "e-payment",
+          "name": "Payment",
+          "store": "payments (Postgres)",
+          "owner": "payments.js",
+          "anchor": {
+            "repo": "billing",
+            "path": "db/schema.sql",
+            "find": "CREATE TABLE payments ("
+          },
+          "fields": [
+            {
+              "name": "id",
+              "type": "BIGSERIAL",
+              "key": "pk"
+            },
+            {
+              "name": "invoice_id",
+              "type": "BIGINT",
+              "key": "fk"
+            },
+            {
+              "name": "amount_cents",
+              "type": "INTEGER"
+            },
+            {
+              "name": "idempotency_key",
+              "type": "TEXT",
+              "note": "UNIQUE: the database rejects a second payment with the same key.",
+              "anchor": {
+                "repo": "billing",
+                "path": "db/schema.sql",
+                "find": "idempotency_key TEXT NOT NULL UNIQUE"
+              }
+            },
+            {
+              "name": "status",
+              "type": "TEXT"
+            }
+          ]
+        },
+        {
+          "id": "e-cache",
+          "name": "Invoice (cache)",
+          "store": "invoice:{id}",
+          "owner": "cache.js",
+          "anchor": {
+            "repo": "billing",
+            "path": "src/cache.js",
+            "find": "function invoiceKey(id) {"
+          },
+          "fields": [
+            {
+              "name": "the whole invoices row",
+              "note": "A copy for INVOICE_CACHE_TTL seconds."
+            }
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "id": "r-pay",
+          "from": "Invoice",
+          "to": "Payment",
+          "kind": "1-n",
+          "label": "payments for the invoice",
+          "anchor": {
+            "repo": "billing",
+            "path": "db/schema.sql",
+            "find": "REFERENCES invoices(id)"
+          },
+          "source": "code"
+        },
+        {
+          "id": "r-cache",
+          "from": "Invoice",
+          "to": "Invoice (cache)",
+          "kind": "1-1",
+          "label": "the cache is dropped on payment and void",
+          "source": "inferred"
+        }
+      ]
+    },
+    {
+      "id": "lineage",
+      "type": "field-lineage",
+      "title": "Path of the invoice amount",
+      "subtitle": "From the request lines to the GET /invoices/:id response.",
+      "field": "invoices.total_cents",
+      "stages": [
+        {
+          "id": "l-born",
+          "kind": "born",
+          "value": "line.qty * line.unitCents",
+          "text": "The amount of each line from the POST /invoices body.",
+          "anchor": {
+            "repo": "billing",
+            "path": "src/invoice.js",
+            "find": "return line.qty * line.unitCents;"
+          }
+        },
+        {
+          "id": "l-round",
+          "kind": "transformed",
+          "value": "Math.round(raw)",
+          "text": "The lines are summed and rounded to a whole cent.",
+          "hot": true,
+          "anchor": {
+            "repo": "billing",
+            "path": "src/invoice.js",
+            "find": "function totalCents(lines) {",
+            "findEnd": "return Math.round(raw);\n}"
+          },
+          "source": "code"
+        },
+        {
+          "id": "l-store",
+          "kind": "stored",
+          "value": "total_cents: total",
+          "text": "Written to invoices along with the currency.",
+          "anchor": {
+            "repo": "billing",
+            "path": "src/invoice.js",
+            "find": "total_cents: total"
+          }
+        },
+        {
+          "id": "l-cache",
+          "kind": "carried",
+          "value": "putInvoice(cache, invoice)",
+          "text": "A copy of the row goes to the cache for the TTL.",
+          "anchor": {
+            "repo": "billing",
+            "path": "src/invoice.js",
+            "find": "await putInvoice(cache, invoice);\n  return invoice;",
+            "nth": 1
+          }
+        },
+        {
+          "id": "l-read",
+          "kind": "read",
+          "value": "gateway.charge(invoice.total_cents, …)",
+          "text": "Payment charges exactly this amount.",
+          "anchor": {
+            "repo": "billing",
+            "path": "src/payments.js",
+            "find": "gateway.charge(invoice.total_cents"
+          }
+        }
+      ]
+    },
+    {
+      "id": "crud",
+      "type": "crud-matrix",
+      "title": "Who creates, reads, updates, deletes",
+      "actors": [
+        {
+          "id": "a-invoice",
+          "name": "invoice.js",
+          "anchor": {
+            "repo": "billing",
+            "path": "src/invoice.js",
+            "find": "async function createInvoice("
+          }
+        },
+        {
+          "id": "a-payments",
+          "name": "payments.js",
+          "anchor": {
+            "repo": "billing",
+            "path": "src/payments.js",
+            "find": "async function charge("
+          }
+        },
+        {
+          "id": "a-http",
+          "name": "http/routes.js"
+        }
+      ],
+      "stores": [
+        {
+          "id": "s-invoices",
+          "name": "invoices",
+          "kind": "table",
+          "anchor": {
+            "repo": "billing",
+            "path": "db/schema.sql",
+            "find": "CREATE TABLE invoices ("
+          },
+          "access": [
+            {
+              "actor": "a-invoice",
+              "ops": "CR",
+              "anchor": {
+                "repo": "billing",
+                "path": "src/invoice.js",
+                "find": "db.insert('invoices'"
+              }
+            },
+            {
+              "actor": "a-payments",
+              "ops": "U",
+              "anchor": {
+                "repo": "billing",
+                "path": "src/payments.js",
+                "find": "await db.update('invoices', { id: invoice.id }, { status: 'paid' });"
+              }
+            },
+            {
+              "actor": "a-payments",
+              "ops": "D",
+              "anchor": {
+                "repo": "billing",
+                "path": "src/payments.js",
+                "find": "await db.remove('invoices', { id: invoice.id });"
+              }
+            }
+          ]
+        },
+        {
+          "id": "s-payments",
+          "name": "payments",
+          "kind": "table",
+          "anchor": {
+            "repo": "billing",
+            "path": "db/schema.sql",
+            "find": "CREATE TABLE payments ("
+          },
+          "access": [
+            {
+              "actor": "a-payments",
+              "ops": "CR",
+              "anchor": {
+                "repo": "billing",
+                "path": "src/payments.js",
+                "find": "await db.insert('payments', {"
+              }
+            }
+          ]
+        },
+        {
+          "id": "s-cache",
+          "name": "invoice cache",
+          "kind": "cache",
+          "key": "invoice:{id}",
+          "ttl": "INVOICE_CACHE_TTL = 300 s",
+          "anchor": {
+            "repo": "billing",
+            "path": "src/cache.js",
+            "find": "return `invoice:${id}`;"
+          },
+          "access": [
+            {
+              "actor": "a-invoice",
+              "ops": "CR",
+              "anchor": {
+                "repo": "billing",
+                "path": "src/cache.js",
+                "find": "ttl: config.invoiceCacheTtl"
+              }
+            },
+            {
+              "actor": "a-payments",
+              "ops": "D",
+              "anchor": {
+                "repo": "billing",
+                "path": "src/payments.js",
+                "find": "await dropInvoice(cache, invoice.id);",
+                "nth": 1
+              }
+            },
+            {
+              "actor": "a-http",
+              "ops": "R",
+              "source": "inferred"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "api",
+      "type": "contract",
+      "title": "Invoices HTTP API",
+      "subtitle": "Click an endpoint — headers, bodies and errors.",
+      "endpoints": [
+        {
+          "id": "ep-create",
+          "method": "POST",
+          "path": "/invoices",
+          "between": "checkout → billing",
+          "text": "Creates an invoice with status open and puts it in the cache.",
+          "request": "{ \"customerId\": 42, \"lines\": [{ \"qty\": 2, \"unitCents\": 150 }] }",
+          "response": "201 { \"id\": 7, \"total_cents\": 300, \"currency\": \"UAH\", \"status\": \"open\" }",
+          "anchor": {
+            "repo": "billing",
+            "path": "src/http/routes.js",
+            "find": "app.post('/invoices',"
+          },
+          "source": "code"
+        },
+        {
+          "id": "ep-get",
+          "method": "GET",
+          "path": "/invoices/:id",
+          "text": "The invoice from the cache, otherwise from the database.",
+          "response": "200 { \"id\": 7, \"total_cents\": 300, \"status\": \"open\" }",
+          "failures": [
+            {
+              "code": "404",
+              "text": "no such invoice"
+            }
+          ],
+          "anchor": {
+            "repo": "billing",
+            "path": "src/http/routes.js",
+            "find": "app.get('/invoices/:id',"
+          }
+        },
+        {
+          "id": "ep-pay",
+          "method": "POST",
+          "path": "/invoices/:id/pay",
+          "between": "checkout → billing → gateway",
+          "text": "Charges the invoice amount; a retry with the same idempotency key returns the first payment.",
+          "headers": [
+            {
+              "name": "Idempotency-Key",
+              "value": "<uuid>",
+              "note": "required"
+            }
+          ],
+          "response": "200 { \"id\": 3, \"invoice_id\": 7, \"amount_cents\": 300, \"status\": \"succeeded\" }",
+          "failures": [
+            {
+              "code": "400",
+              "text": "no Idempotency-Key"
+            },
+            {
+              "code": "404",
+              "text": "no such invoice"
+            },
+            {
+              "code": "409",
+              "text": "the invoice is already paid"
+            },
+            {
+              "code": "502",
+              "text": "the gateway declined CHARGE_RETRIES times"
+            }
+          ],
+          "anchor": {
+            "repo": "billing",
+            "path": "src/http/routes.js",
+            "find": "app.post('/invoices/:id/pay',"
+          },
+          "source": "code"
+        },
+        {
+          "id": "ep-void",
+          "method": "DELETE",
+          "path": "/invoices/:id",
+          "text": "Voids an unpaid invoice.",
+          "response": "204",
+          "failures": [
+            {
+              "code": "404",
+              "text": "no such invoice"
+            },
+            {
+              "code": "409",
+              "text": "a paid invoice cannot be voided"
+            }
+          ],
+          "anchor": {
+            "repo": "billing",
+            "path": "src/http/routes.js",
+            "find": "app.delete('/invoices/:id',"
+          }
+        }
+      ]
+    },
+    {
+      "id": "config",
+      "type": "config-panel",
+      "title": "Settings that affect payment",
+      "params": [
+        {
+          "id": "c-retries",
+          "name": "CHARGE_RETRIES",
+          "default": "3",
+          "anchor": {
+            "repo": "billing",
+            "path": "src/config.js",
+            "find": "Number(env.CHARGE_RETRIES || 3)"
+          },
+          "values": {
+            "local": "1",
+            "staging": "3",
+            "prod": "5"
+          },
+          "affects": "How many times payment tries the gateway before returning 502.",
+          "affectsAnchors": [
+            {
+              "repo": "billing",
+              "path": "src/payments.js",
+              "find": "attempt <= config.chargeRetries"
+            }
+          ],
+          "source": "code"
+        },
+        {
+          "id": "c-ttl",
+          "name": "INVOICE_CACHE_TTL",
+          "default": "300",
+          "anchor": {
+            "repo": "billing",
+            "path": "src/config.js",
+            "find": "Number(env.INVOICE_CACHE_TTL || 300)"
+          },
+          "values": {
+            "prod": "600"
+          },
+          "affects": "How many seconds GET /invoices/:id may serve the invoice from the cache.",
+          "affectsAnchors": [
+            {
+              "repo": "billing",
+              "path": "src/cache.js",
+              "find": "ttl: config.invoiceCacheTtl"
+            }
+          ]
+        },
+        {
+          "id": "c-timeout",
+          "name": "GATEWAY_TIMEOUT_MS",
+          "default": "5000",
+          "anchor": {
+            "repo": "billing",
+            "path": "src/config.js",
+            "find": "Number(env.GATEWAY_TIMEOUT_MS || 5000)"
+          },
+          "affects": "Time for one charge attempt.",
+          "affectsAnchors": [
+            {
+              "repo": "billing",
+              "path": "src/payments.js"
+            }
+          ]
+        },
+        {
+          "id": "c-currency",
+          "name": "BILLING_CURRENCY",
+          "default": "UAH",
+          "anchor": {
+            "repo": "billing",
+            "path": "src/config.js",
+            "find": "env.BILLING_CURRENCY || 'UAH'"
+          },
+          "values": {
+            "prod": "UAH",
+            "staging": "EUR"
+          },
+          "affects": "Currency of new invoices; old ones do not change."
+        }
+      ]
+    },
+    {
+      "id": "failures",
+      "type": "failure-modes",
+      "title": "What happens if the payment fails",
+      "modes": [
+        {
+          "id": "fm-gateway",
+          "situation": "The gateway fails on every attempt",
+          "behavior": "Tries CHARGE_RETRIES times, then throws PaymentError 502.",
+          "visible": "502 { \"error\": \"gateway failed: …\" }; the invoice stays open",
+          "anchor": {
+            "repo": "billing",
+            "path": "src/payments.js",
+            "find": "throw new PaymentError(502,"
+          },
+          "source": "code"
+        },
+        {
+          "id": "fm-double",
+          "situation": "The client retries the payment with the same key",
+          "behavior": "Finds the first payment by the key and returns it; the gateway is not called.",
+          "visible": "200 with the same payment",
+          "anchor": {
+            "repo": "billing",
+            "path": "src/payments.js",
+            "find": "if (existing) return existing;"
+          }
+        },
+        {
+          "id": "fm-paid",
+          "situation": "Paying an already paid invoice",
+          "behavior": "Refuses before touching the payments table.",
+          "visible": "409 { \"error\": \"invoice already paid\" }",
+          "anchor": {
+            "repo": "billing",
+            "path": "src/payments.js",
+            "find": "throw new PaymentError(409, 'invoice already paid')"
+          }
+        },
+        {
+          "id": "fm-crash",
+          "situation": "The process dies between writing the payment and updating the invoice",
+          "behavior": "The payment is written, the invoice stays open; there is no transaction.",
+          "visible": "A retry with the same key returns the payment, but the invoice stays open",
+          "source": "inferred"
+        }
+      ]
+    },
+    {
+      "id": "inv",
+      "type": "invariants",
+      "title": "What always holds",
+      "invariants": [
+        {
+          "id": "inv-once",
+          "text": "A paid invoice is not charged twice.",
+          "check": "if (invoice.status === 'paid') throw new PaymentError(409",
+          "anchor": {
+            "repo": "billing",
+            "path": "src/payments.js",
+            "find": "if (invoice.status === 'paid') throw new PaymentError(409, 'invoice already paid');"
+          },
+          "source": "code"
+        },
+        {
+          "id": "inv-idem",
+          "text": "One idempotency key — one payment.",
+          "check": "idempotency_key TEXT NOT NULL UNIQUE",
+          "anchor": {
+            "repo": "billing",
+            "path": "db/schema.sql",
+            "find": "idempotency_key TEXT NOT NULL UNIQUE"
+          },
+          "source": "code"
+        },
+        {
+          "id": "inv-nonneg",
+          "text": "An invoice amount is never negative.",
+          "check": "CHECK (total_cents >= 0)",
+          "anchor": {
+            "repo": "billing",
+            "path": "src/invoice.js",
+            "find": "if (total < 0) throw new Error('negative total');"
+          },
+          "source": "code"
+        },
+        {
+          "id": "inv-void",
+          "text": "A paid invoice cannot be voided.",
+          "check": "paid invoices cannot be voided",
+          "anchor": {
+            "repo": "billing",
+            "path": "src/payments.js",
+            "find": "if (invoice.status === 'paid') throw new PaymentError(409, 'paid invoices cannot be voided');"
+          }
+        }
+      ]
+    },
+    {
+      "id": "risks",
+      "type": "risks",
+      "title": "Risks",
+      "risks": [
+        {
+          "id": "rk-tx",
+          "severity": "high",
+          "title": "A payment without an updated invoice",
+          "consequence": "The money is charged but the invoice is open: the client sees “not paid” and pays again with a new key.",
+          "reference": "failure modes · the process dies between the write and the update",
+          "anchor": {
+            "repo": "billing",
+            "path": "src/payments.js",
+            "find": "await db.update('invoices', { id: invoice.id }, { status: 'paid' });"
+          },
+          "source": "inferred"
+        },
+        {
+          "id": "rk-stale",
+          "severity": "medium",
+          "title": "Stale cache after a manual edit",
+          "consequence": "An invoice edit in the database that bypasses the code shows only after INVOICE_CACHE_TTL.",
+          "reference": "config panel · INVOICE_CACHE_TTL",
+          "anchor": {
+            "repo": "billing",
+            "path": "src/cache.js",
+            "find": "ttl: config.invoiceCacheTtl"
+          }
+        },
+        {
+          "id": "rk-currency",
+          "severity": "high",
+          "title": "Changing the currency on the fly",
+          "consequence": "New invoices are in another currency, while the gateway charges total_cents without conversion.",
+          "reference": "README · Currency"
+        },
+        {
+          "id": "rk-rounding",
+          "severity": "low",
+          "title": "Tax rounding",
+          "consequence": "Tax is rounded on every line, not on the total: up to a cent of difference per line.",
+          "reference": "README · Tax"
+        },
+        {
+          "id": "rk-retry",
+          "severity": "medium",
+          "title": "A retry without an idempotency key",
+          "consequence": "A manual retry from the admin creates a new key and may charge twice.",
+          "reference": "failure modes · the gateway does not respond"
+        },
+        {
+          "id": "rk-ttl-zero",
+          "severity": "low",
+          "title": "INVOICE_CACHE_TTL = 0",
+          "consequence": "The cache is off: every request goes to the database and latency grows under load.",
+          "reference": "config panel · INVOICE_CACHE_TTL"
+        },
+        {
+          "id": "rk-webhook",
+          "severity": "medium",
+          "title": "Unsigned gateway webhook",
+          "consequence": "A forged webhook can mark an invoice as paid.",
+          "reference": "README · Webhooks"
+        }
+      ]
+    },
+    {
+      "id": "tests",
+      "type": "test-coverage",
+      "title": "What the tests pin down",
+      "behaviors": [
+        {
+          "id": "tc-total",
+          "behavior": "The invoice amount is the sum of the lines.",
+          "tests": [
+            {
+              "name": "total sums the lines",
+              "anchor": {
+                "repo": "billing",
+                "path": "test/invoice.test.js",
+                "find": "test('total sums the lines'"
+              }
+            },
+            {
+              "name": "total of no lines is zero",
+              "anchor": {
+                "repo": "billing",
+                "path": "test/invoice.test.js",
+                "find": "test('total of no lines is zero'"
+              }
+            }
+          ]
+        },
+        {
+          "id": "tc-paid",
+          "behavior": "A paid invoice is not charged twice.",
+          "tests": [
+            {
+              "name": "a paid invoice is not charged again",
+              "anchor": {
+                "repo": "billing",
+                "path": "test/payments.test.js",
+                "find": "test('a paid invoice is not charged again'"
+              }
+            }
+          ]
+        },
+        {
+          "id": "tc-idem",
+          "behavior": "A retry with the same key returns the first payment.",
+          "tests": [
+            {
+              "name": "the same idempotency key returns the first payment",
+              "anchor": {
+                "repo": "billing",
+                "path": "test/payments.test.js",
+                "find": "test('the same idempotency key returns the first payment'"
+              }
+            }
+          ]
+        },
+        {
+          "id": "tc-retry",
+          "behavior": "After CHARGE_RETRIES failed attempts — 502.",
+          "tests": [],
+          "note": "Needs a test with a gateway that always throws."
+        },
+        {
+          "id": "tc-void",
+          "behavior": "A paid invoice is not voided.",
+          "tests": [],
+          "note": "No test calls voidInvoice."
+        }
+      ]
+    }
+  ],
+  "route": [
+    {
+      "block": "lineage",
+      "focus": "l-round",
+      "minutes": 1,
+      "why": "Where exactly the amount is born.",
+      "modes": [
+        "short",
+        "full"
+      ]
+    },
+    {
+      "block": "model",
+      "minutes": 1,
+      "why": "Which tables hold it.",
+      "modes": [
+        "full"
+      ]
+    },
+    {
+      "block": "crud",
+      "focus": "s-cache",
+      "minutes": 1,
+      "why": "Who touches the invoice cache.",
+      "modes": [
+        "full"
+      ]
+    },
+    {
+      "block": "api",
+      "focus": "ep-pay",
+      "minutes": 2,
+      "why": "How payment is called.",
+      "modes": [
+        "short",
+        "full"
+      ]
+    },
+    {
+      "block": "config",
+      "minutes": 1,
+      "why": "What can be tuned.",
+      "modes": [
+        "full"
+      ]
+    },
+    {
+      "block": "failures",
+      "minutes": 2,
+      "why": "What the client sees when something goes wrong.",
+      "modes": [
+        "short",
+        "full"
+      ]
+    },
+    {
+      "block": "inv",
+      "focus": "inv-once",
+      "minutes": 1,
+      "why": "What is guaranteed.",
+      "modes": [
+        "full"
+      ]
+    },
+    {
+      "block": "risks",
+      "minutes": 1,
+      "why": "What can go wrong.",
+      "modes": [
+        "full"
+      ]
+    },
+    {
+      "block": "tests",
+      "minutes": 1,
+      "why": "What of this the tests pin down.",
+      "modes": [
+        "full"
+      ]
+    }
+  ],
+  "openQuestions": []
+}

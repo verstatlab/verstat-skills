@@ -1,0 +1,144 @@
+{
+  "title": "simulator",
+  "description": "Lets the reader change inputs and see the outputs recomputed at once. Each output is an expression over the inputs and earlier outputs in a small language: numbers, 'strings', true/false, + - * / %, < <= > >= == !=, && || !, a ? b : c, parentheses and min, max, round(x, digits), floor, ceil, abs. Nothing else is accepted (no property access, no other calls). Each output with an anchor is content-checked against `literal`. Not rendered when `outputs` is empty.",
+  "type": "object",
+  "required": [
+    "id",
+    "type",
+    "inputs",
+    "outputs"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "type": {
+      "const": "simulator"
+    },
+    "title": {
+      "type": "string",
+      "description": "Heading of the block (h2)."
+    },
+    "subtitle": {
+      "type": "string",
+      "description": "One line under the heading."
+    },
+    "inputs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "kind",
+          "default"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+            "description": "Name used in expressions."
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "enum": [
+              "number",
+              "select",
+              "boolean"
+            ]
+          },
+          "default": {
+            "type": [
+              "number",
+              "string",
+              "boolean"
+            ]
+          },
+          "options": {
+            "type": "array",
+            "description": "Values of a `select`.",
+            "items": {
+              "type": [
+                "string",
+                "number"
+              ]
+            }
+          },
+          "min": {
+            "type": "number"
+          },
+          "max": {
+            "type": "number"
+          },
+          "step": {
+            "type": "number"
+          },
+          "unit": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "outputs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "expr"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+            "description": "Part id and the name later outputs use."
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expr": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The rule in the expression language described above."
+          },
+          "unit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "decimals": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 6
+          },
+          "literal": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The rule's constant or condition as written in code; the anchored line must contain it."
+          },
+          "anchor": {
+            "$ref": "verstat:page#/$defs/anchor",
+            "x-anchor-contains": "literal"
+          },
+          "source": {
+            "$ref": "verstat:page#/$defs/source"
+          }
+        }
+      }
+    },
+    "note": {
+      "type": "string",
+      "minLength": 1,
+      "description": "One line above the fields (what the simulator leaves out)."
+    }
+  }
+}

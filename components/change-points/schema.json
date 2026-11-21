@@ -1,0 +1,82 @@
+{
+  "title": "change-points",
+  "description": "The final block of explain: where to start a change, what changes together (git co-change), what is dangerous to touch, which test to run. Not rendered when `points` is empty.",
+  "type": "object",
+  "required": [
+    "id",
+    "type",
+    "points"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "type": {
+      "const": "change-points"
+    },
+    "title": {
+      "type": "string",
+      "description": "Heading of the block (h2)."
+    },
+    "subtitle": {
+      "type": "string",
+      "description": "One line under the heading."
+    },
+    "points": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "title",
+          "text"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Part id, unique in the block; a route step can focus it."
+          },
+          "kind": {
+            "enum": [
+              "start",
+              "together",
+              "danger",
+              "run",
+              "note"
+            ],
+            "description": "start: the file to begin with; together: changes along with it; danger: risky to touch; run: the test or command to run; note: anything else."
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1
+          },
+          "anchors": {
+            "type": "array",
+            "items": {
+              "$ref": "verstat:page#/$defs/anchor"
+            }
+          },
+          "commands": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "source": {
+            "$ref": "verstat:page#/$defs/source"
+          }
+        }
+      }
+    }
+  }
+}

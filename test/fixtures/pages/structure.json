@@ -1,0 +1,200 @@
+{
+  "schema": "verstat.page/1",
+  "skill": "explain",
+  "question": "What makes up order payment and where are its riskiest places?",
+  "repos": {
+    "shop": { "sha": "0000000", "path": "." }
+  },
+  "glossary": [
+    {
+      "term": "charge",
+      "code": "capture",
+      "aliases": ["charges", "charging"],
+      "definition": "An attempt to take money through the payment gateway; up to three retries, then an error.",
+      "anchor": { "repo": "shop", "path": "src/payments/capture.js", "find": "async function capture(gateway, order) {" },
+      "source": "code"
+    }
+  ],
+  "blocks": [
+    {
+      "id": "map",
+      "type": "system-map",
+      "title": "Where payment lives",
+      "subtitle": "The shop, the payment gateway and the order store; three levels of detail.",
+      "groups": [
+        { "id": "shop", "label": "shop" },
+        { "id": "platform", "label": "platform" }
+      ],
+      "levels": [
+        {
+          "level": "system",
+          "nodes": [
+            { "id": "web", "label": "Storefront", "kind": "client", "group": "platform" },
+            { "id": "shop-sys", "label": "Shop", "kind": "service", "group": "shop", "highlight": true, "note": "Creates orders and runs the charge." },
+            { "id": "gateway", "label": "Payment gateway", "kind": "external", "note": "A third-party API; timeouts happen." },
+            { "id": "db", "label": "Orders", "kind": "store", "group": "platform" }
+          ],
+          "links": [
+            { "id": "l-web", "from": "web", "to": "shop-sys", "label": "check out", "kind": "call" },
+            { "id": "l-charge", "from": "shop-sys", "to": "gateway", "label": "charge", "kind": "call", "highlight": true },
+            { "from": "shop-sys", "to": "db", "label": "save", "kind": "write" }
+          ]
+        },
+        {
+          "level": "service",
+          "nodes": [
+            { "id": "orders-svc", "label": "orders", "kind": "service", "group": "shop" },
+            {
+              "id": "payments-svc",
+              "label": "payments",
+              "kind": "service",
+              "group": "shop",
+              "highlight": true,
+              "anchors": [{ "repo": "shop", "path": "src/payments/capture.js", "find": "async function capture(gateway, order) {" }],
+              "source": "code"
+            },
+            { "id": "gateway-svc", "label": "Payment gateway", "kind": "external" },
+            { "id": "events", "label": "order-events", "kind": "queue", "group": "platform", "note": "Nowhere in the shop code is it visible who reads the queue.", "source": "inferred" }
+          ],
+          "links": [
+            { "id": "l-mark", "from": "payments-svc", "to": "orders-svc", "label": "markPaid", "kind": "call", "anchor": { "repo": "shop", "path": "src/payments/capture.js", "find": "return markPaid(order, payment);" } },
+            { "from": "payments-svc", "to": "gateway-svc", "label": "charge", "kind": "call", "highlight": true },
+            { "from": "orders-svc", "to": "events", "label": "paid", "kind": "publish", "source": "inferred" }
+          ]
+        },
+        {
+          "level": "module",
+          "nodes": [
+            {
+              "id": "m-order",
+              "label": "orders/order.js",
+              "kind": "module",
+              "group": "shop",
+              "note": "Order statuses and transitions.",
+              "anchors": [{ "repo": "shop", "path": "src/orders/order.js", "find": "function markPaid(order, payment) {" }]
+            },
+            {
+              "id": "m-capture",
+              "label": "payments/capture.js",
+              "kind": "module",
+              "group": "shop",
+              "highlight": true,
+              "note": "Charge retries, then markPaid.",
+              "anchors": [{ "repo": "shop", "path": "src/payments/capture.js", "find": "const RETRIES = 3;" }]
+            },
+            { "id": "m-test", "label": "capture.test.js", "kind": "module", "group": "shop" }
+          ],
+          "links": [
+            { "from": "m-capture", "to": "m-order", "label": "require", "kind": "call" },
+            { "from": "m-test", "to": "m-capture", "label": "require", "kind": "call" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "layers",
+      "type": "layers",
+      "title": "Payment layers",
+      "layers": [
+        {
+          "id": "ly-test",
+          "role": "test",
+          "package": "test/",
+          "files": [{ "path": "test/capture.test.js", "anchor": { "repo": "shop", "path": "test/capture.test.js" } }],
+          "rule": "public functions only"
+        },
+        {
+          "id": "ly-pay",
+          "role": "service",
+          "package": "src/payments/",
+          "files": [
+            { "path": "src/payments/capture.js", "anchor": { "repo": "shop", "path": "src/payments/capture.js" } },
+            { "path": "src/payments/capture.js", "label": "capture()", "anchor": { "repo": "shop", "path": "src/payments/capture.js", "find": "async function capture(gateway, order) {", "findEnd": "throw lastError;\n}" } }
+          ],
+          "rule": "calls the domain, not the other way round",
+          "ruleAnchor": { "repo": "shop", "path": "src/payments/capture.js", "find": "const { markPaid } = require('../orders/order');" },
+          "highlight": true,
+          "note": "The charge with retries lives here."
+        },
+        {
+          "id": "ly-domain",
+          "role": "domain",
+          "package": "src/orders/",
+          "files": [{ "path": "src/orders/order.js", "label": "order", "anchor": { "repo": "shop", "path": "src/orders/order.js" } }],
+          "rule": "imports nothing",
+          "note": "The domain seems to know nothing about payments.",
+          "source": "inferred"
+        }
+      ]
+    },
+    {
+      "id": "card",
+      "type": "module-card",
+      "path": "src/payments/capture.js",
+      "role": "Charges money with retries and marks the order paid",
+      "summary": "capture tries the gateway up to three times; the first success goes to markPaid, after the last failure it throws the last error.",
+      "anchor": { "repo": "shop", "path": "src/payments/capture.js", "find": "async function capture(gateway, order) {" },
+      "source": "code",
+      "members": [
+        { "id": "mb-capture", "name": "capture", "kind": "func", "note": "Charge with retries.", "anchor": { "repo": "shop", "path": "src/payments/capture.js", "find": "async function capture(gateway, order) {" } },
+        { "id": "mb-refund", "name": "refund", "kind": "func", "anchor": { "repo": "shop", "path": "src/payments/capture.js", "find": "function refund(gateway, order) {" } },
+        { "id": "mb-retries", "name": "RETRIES", "kind": "const", "anchor": { "repo": "shop", "path": "src/payments/capture.js", "find": "const RETRIES = 3;" } }
+      ],
+      "read": [{ "id": "rd-loop", "path": "capture.js · retry loop", "why": "The retry loop and what it returns.", "anchor": { "repo": "shop", "path": "src/payments/capture.js", "find": "for (let attempt = 1; attempt <= RETRIES; attempt++) {", "findEnd": "  }\n  throw lastError;" } }],
+      "skim": [{ "path": "order.js", "why": "markPaid: what happens to the order after the charge.", "anchor": { "repo": "shop", "path": "src/orders/order.js" } }, { "path": "refund" }],
+      "skip": [{ "path": "module.exports" }, { "path": "package.json", "anchor": { "repo": "shop", "path": "package.json" } }]
+    },
+    {
+      "id": "deps",
+      "type": "dependency-graph",
+      "title": "Who imports whom",
+      "clusters": [
+        { "id": "src", "label": "src" },
+        { "id": "test", "label": "test" }
+      ],
+      "nodes": [
+        { "id": "d-order", "label": "orders/order.js", "cluster": "src", "anchors": [{ "repo": "shop", "path": "src/orders/order.js", "find": "module.exports = { STATUS, createOrder, total, markPaid, ship };" }] },
+        { "id": "d-capture", "label": "payments/capture.js", "cluster": "src", "highlight": true, "note": "The only place that talks to the gateway." },
+        { "id": "d-test", "label": "capture.test.js", "cluster": "test" }
+      ],
+      "edges": [
+        { "id": "e-import", "from": "d-capture", "to": "d-order", "anchor": { "repo": "shop", "path": "src/payments/capture.js", "find": "const { markPaid } = require('../orders/order');" }, "source": "code" },
+        { "from": "d-order", "to": "d-capture", "kind": "call", "label": "via a callback", "source": "inferred" },
+        { "from": "d-test", "to": "d-capture", "anchor": { "repo": "shop", "path": "test/capture.test.js", "find": "const { capture } = require('../src/payments/capture');" } },
+        { "from": "d-test", "to": "d-order" }
+      ]
+    },
+    {
+      "id": "hot",
+      "type": "hotspots",
+      "title": "What changes most often",
+      "metric": "changes",
+      "period": "90 days",
+      "groups": [
+        {
+          "id": "g-src",
+          "label": "src",
+          "files": [
+            { "id": "h-order", "path": "src/orders/order.js", "lines": 27, "changes": 4, "authors": 2, "anchor": { "repo": "shop", "path": "src/orders/order.js" } },
+            { "id": "h-capture", "path": "src/payments/capture.js", "lines": 23, "changes": 11, "authors": 3, "anchor": { "repo": "shop", "path": "src/payments/capture.js", "find": "const payment = await gateway.charge(order.total);" }, "note": "The retry count is the most frequently edited." },
+            { "id": "h-pkg", "path": "package.json", "lines": 1, "changes": 1, "authors": 1, "anchor": { "repo": "shop", "path": "package.json" } }
+          ]
+        },
+        {
+          "id": "g-test",
+          "label": "test",
+          "files": [
+            { "id": "h-test", "path": "test/capture.test.js", "lines": 12, "changes": 6, "authors": 2, "anchor": { "repo": "shop", "path": "test/capture.test.js" } }
+          ]
+        }
+      ]
+    }
+  ],
+  "route": [
+    { "block": "map", "focus": "m-capture", "minutes": 1, "why": "Where payment is in the system and the module to start from.", "modes": ["short", "full"] },
+    { "block": "layers", "focus": "ly-pay", "minutes": 1, "why": "The layer with the charge.", "modes": ["short", "full"] },
+    { "block": "card", "minutes": 2, "why": "What is in the module and what to read.", "modes": ["full"] },
+    { "block": "deps", "focus": "d-capture", "minutes": 1, "why": "The cycle between payment and orders.", "modes": ["full"] },
+    { "block": "hot", "focus": "h-capture", "minutes": 1, "why": "The hottest file.", "modes": ["short", "full"] }
+  ]
+}

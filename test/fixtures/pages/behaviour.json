@@ -1,0 +1,1121 @@
+{
+  "schema": "verstat.page/1",
+  "skill": "explain",
+  "question": "How does an order go through payment, shipping and refund?",
+  "repos": {
+    "checkout": {
+      "sha": "0000000",
+      "path": "."
+    }
+  },
+  "glossary": [
+    {
+      "term": "charge",
+      "code": "charge",
+      "aliases": [
+        "charges",
+        "charging"
+      ],
+      "definition": "A request to the payment gateway that takes the money for an order.",
+      "anchor": {
+        "repo": "checkout",
+        "path": "src/payments/gateway.js",
+        "find": "export async function charge(order) {"
+      },
+      "source": "code"
+    }
+  ],
+  "blocks": [
+    {
+      "id": "answer",
+      "type": "brief",
+      "answer": "An order is paid through a charge at the gateway, after which it becomes paid and publishes order.paid; refundDecision decides a refund by status, days after delivery and amount."
+    },
+    {
+      "id": "states",
+      "type": "state-machine",
+      "title": "Order states",
+      "subtitle": "Transitions from the TRANSITIONS table and the checks in move().",
+      "states": [
+        {
+          "id": "draft",
+          "label": "Draft",
+          "initial": true,
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/orders/states.js",
+            "find": "['draft', 'submit', 'pending'],"
+          }
+        },
+        {
+          "id": "pending",
+          "label": "Awaiting payment"
+        },
+        {
+          "id": "paid",
+          "label": "Paid"
+        },
+        {
+          "id": "shipped",
+          "label": "Shipped"
+        },
+        {
+          "id": "delivered",
+          "label": "Delivered"
+        },
+        {
+          "id": "refunded",
+          "label": "Refunded",
+          "final": true
+        },
+        {
+          "id": "cancelled",
+          "label": "Cancelled",
+          "final": true
+        },
+        {
+          "id": "disputed",
+          "label": "Dispute",
+          "text": "There is no transition out of a dispute."
+        },
+        {
+          "id": "onHold",
+          "label": "Suspended",
+          "text": "No transition leads here."
+        }
+      ],
+      "transitions": [
+        {
+          "id": "t-submit",
+          "from": "draft",
+          "to": "pending",
+          "trigger": "submit",
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/orders/states.js",
+            "find": "['draft', 'submit', 'pending'],"
+          },
+          "source": "code"
+        },
+        {
+          "id": "t-pay",
+          "from": "pending",
+          "to": "paid",
+          "trigger": "pay",
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/orders/states.js",
+            "find": "['pending', 'pay', 'paid'],"
+          },
+          "source": "code",
+          "condition": "charge succeeded"
+        },
+        {
+          "id": "t-cancel-pending",
+          "from": "pending",
+          "to": "cancelled",
+          "trigger": "cancel",
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/orders/states.js",
+            "find": "['pending', 'cancel', 'cancelled'],"
+          },
+          "source": "code"
+        },
+        {
+          "id": "t-ship",
+          "from": "paid",
+          "to": "shipped",
+          "trigger": "ship",
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/orders/states.js",
+            "find": "['paid', 'ship', 'shipped'],"
+          },
+          "source": "code"
+        },
+        {
+          "id": "t-cancel-paid",
+          "from": "paid",
+          "to": "cancelled",
+          "trigger": "cancel",
+          "condition": "not shipped yet",
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/orders/states.js",
+            "find": "if (trigger === 'cancel' && order.shippedAt) throw new Error('already shipped');"
+          },
+          "source": "code"
+        },
+        {
+          "id": "t-deliver",
+          "from": "shipped",
+          "to": "delivered",
+          "trigger": "deliver",
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/orders/states.js",
+            "find": "['shipped', 'deliver', 'delivered'],"
+          },
+          "source": "code"
+        },
+        {
+          "id": "t-refund-shipped",
+          "from": "shipped",
+          "to": "refunded",
+          "trigger": "refund",
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/orders/states.js",
+            "find": "['shipped', 'refund', 'refunded'],"
+          },
+          "source": "code",
+          "condition": "amount > 0"
+        },
+        {
+          "id": "t-refund",
+          "from": "delivered",
+          "to": "refunded",
+          "trigger": "refund",
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/orders/states.js",
+            "find": "['delivered', 'refund', 'refunded'],"
+          },
+          "source": "code",
+          "condition": "amount > 0"
+        },
+        {
+          "id": "t-dispute",
+          "from": "delivered",
+          "to": "disputed",
+          "trigger": "dispute",
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/orders/states.js",
+            "find": "['delivered', 'dispute', 'disputed'],"
+          },
+          "source": "code"
+        },
+        {
+          "id": "t-release",
+          "from": "onHold",
+          "to": "pending",
+          "trigger": "release",
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/orders/states.js",
+            "find": "['onHold', 'release', 'pending'],"
+          },
+          "source": "code"
+        }
+      ]
+    },
+    {
+      "id": "pay-seq",
+      "type": "sequence",
+      "title": "Order payment",
+      "subtitle": "POST /orders/:id/pay from request to response.",
+      "participants": [
+        {
+          "id": "client",
+          "label": "Client",
+          "kind": "actor"
+        },
+        {
+          "id": "api",
+          "label": "API /orders",
+          "kind": "service"
+        },
+        {
+          "id": "store",
+          "label": "Store",
+          "kind": "store"
+        },
+        {
+          "id": "gateway",
+          "label": "Payment gateway",
+          "kind": "external"
+        },
+        {
+          "id": "bus",
+          "label": "Event bus",
+          "kind": "queue"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s-req",
+          "from": "client",
+          "to": "api",
+          "label": "POST /orders/:id/pay",
+          "text": "The client asks to pay for the order.",
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/api/orders.js",
+            "find": "export async function payOrder(req, res) {"
+          },
+          "source": "code"
+        },
+        {
+          "id": "s-find",
+          "from": "api",
+          "to": "store",
+          "label": "orders.find(id)",
+          "text": "The API reads the order; if there is none — 404.",
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/api/orders.js",
+            "find": "const order = await orders.find(req.params.id);"
+          }
+        },
+        {
+          "id": "s-found",
+          "from": "store",
+          "to": "api",
+          "label": "order",
+          "kind": "return",
+          "text": "The store returns the order."
+        },
+        {
+          "id": "s-charge",
+          "from": "api",
+          "to": "gateway",
+          "label": "charge(order)",
+          "text": "A charge at the gateway; if the gateway is down — 503.",
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/api/orders.js",
+            "find": "const result = await payments.charge(order);"
+          },
+          "handler": {
+            "repo": "checkout",
+            "path": "src/payments/gateway.js",
+            "find": "export async function charge(order) {"
+          },
+          "source": "code"
+        },
+        {
+          "id": "s-charged",
+          "from": "gateway",
+          "to": "api",
+          "label": "{ ok, chargeId }",
+          "kind": "return",
+          "text": "The gateway confirms the charge.",
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/payments/gateway.js",
+            "find": "return { ok: true, chargeId: response.body.id };"
+          }
+        },
+        {
+          "id": "s-move",
+          "from": "api",
+          "to": "api",
+          "label": "move(order, 'pay')",
+          "text": "The order moves to paid.",
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/api/orders.js",
+            "find": "const paid = move(order, 'pay');"
+          }
+        },
+        {
+          "id": "s-save",
+          "from": "api",
+          "to": "store",
+          "label": "orders.save(paid)",
+          "text": "The new state is saved.",
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/api/orders.js",
+            "find": "await orders.save(paid);"
+          }
+        },
+        {
+          "id": "s-publish",
+          "from": "api",
+          "to": "bus",
+          "label": "publish('order.paid')",
+          "text": "Subscribers learn about the payment — synchronously, before the response.",
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/api/orders.js",
+            "find": "bus.publish('order.paid', { id: paid.id, chargeId: result.chargeId });"
+          }
+        },
+        {
+          "id": "s-ok",
+          "from": "api",
+          "to": "client",
+          "label": "200 paid",
+          "kind": "return",
+          "text": "The client gets the paid order.",
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/api/orders.js",
+            "find": "return res.status(200).json(paid);"
+          }
+        },
+        {
+          "id": "s-402",
+          "from": "api",
+          "to": "client",
+          "label": "402 declined",
+          "kind": "error",
+          "text": "If the gateway declined — instead of steps 6–9 the client gets 402.",
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/api/orders.js",
+            "find": "if (!result.ok) return res.status(402).json({ error: 'declined' });"
+          }
+        }
+      ]
+    },
+    {
+      "id": "refund-rules",
+      "type": "decision-table",
+      "title": "Can the money be refunded",
+      "subtitle": "refundDecision: the first condition that matches decides.",
+      "outcomeLabel": "Decision",
+      "conditions": [
+        {
+          "id": "status",
+          "label": "Status"
+        },
+        {
+          "id": "days",
+          "label": "Days after delivery"
+        },
+        {
+          "id": "total",
+          "label": "Amount"
+        },
+        {
+          "id": "vip",
+          "label": "VIP"
+        }
+      ],
+      "rows": [
+        {
+          "id": "r-ship",
+          "when": {
+            "status": "shipped",
+            "days": "*",
+            "total": "*",
+            "vip": "*"
+          },
+          "outcome": "carrier-recall",
+          "literal": "order.status === 'shipped'",
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/refunds/policy.js",
+            "find": "if (order.status === 'shipped') return 'carrier-recall';"
+          },
+          "source": "code"
+        },
+        {
+          "id": "r-auto",
+          "when": {
+            "status": "delivered",
+            "days": "≤ 14",
+            "total": "< 5000",
+            "vip": "*"
+          },
+          "outcome": "auto",
+          "literal": "days <= 14 && order.total < 5000",
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/refunds/policy.js",
+            "find": "if (days <= 14 && order.total < 5000) return 'auto';"
+          },
+          "source": "code"
+        },
+        {
+          "id": "r-manual",
+          "when": {
+            "status": "delivered",
+            "days": "≤ 14",
+            "total": "≥ 5000",
+            "vip": "*"
+          },
+          "outcome": "manual",
+          "literal": "order.total >= 5000",
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/refunds/policy.js",
+            "find": "if (days <= 14 && order.total >= 5000) return 'manual';"
+          },
+          "source": "code"
+        },
+        {
+          "id": "r-vip",
+          "when": {
+            "status": "delivered",
+            "days": "> 14",
+            "total": "*",
+            "vip": "yes"
+          },
+          "outcome": "manual",
+          "literal": "days > 14 && order.vip",
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/refunds/policy.js",
+            "find": "if (days > 14 && order.vip) return 'manual';"
+          },
+          "source": "code"
+        },
+        {
+          "id": "r-reject",
+          "when": {
+            "status": "delivered",
+            "days": "> 14",
+            "total": "*",
+            "vip": "*"
+          },
+          "outcome": "reject",
+          "literal": "days > 30",
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/refunds/policy.js",
+            "find": "if (days > 14) return 'reject';"
+          },
+          "source": "code",
+          "note": "The order in the code saves VIPs: their row comes first."
+        },
+        {
+          "id": "r-cancelled",
+          "when": {
+            "status": "cancelled",
+            "total": "*",
+            "vip": "*"
+          },
+          "literal": "return undefined",
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/refunds/policy.js",
+            "find": "return undefined;"
+          },
+          "source": "code",
+          "note": "The code does not consider cancelled orders."
+        }
+      ]
+    },
+    {
+      "id": "invoice",
+      "type": "calculation",
+      "title": "Order invoice",
+      "subtitle": "invoice() on the example of a 12,000 cart.",
+      "inputs": [
+        {
+          "name": "subtotal",
+          "value": 12000
+        }
+      ],
+      "steps": [
+        {
+          "id": "c-sub",
+          "label": "Cart total",
+          "expr": "Σ price × qty",
+          "value": 12000,
+          "literal": "i.price * i.qty",
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/billing/invoice.js",
+            "find": "const subtotal = order.items.reduce((sum, i) => sum + i.price * i.qty, 0);"
+          },
+          "source": "code"
+        },
+        {
+          "id": "c-disc",
+          "label": "5% discount from 10,000",
+          "expr": "round(subtotal × 0.05)",
+          "value": 600,
+          "literal": "subtotal * 0.05",
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/billing/invoice.js",
+            "find": "const discount = subtotal >= 10000 ? Math.round(subtotal * 0.05) : 0;"
+          },
+          "source": "code"
+        },
+        {
+          "id": "c-ship",
+          "label": "Free shipping from 3,000",
+          "expr": "subtotal − discount ≥ 3000 ? 0 : 250",
+          "value": 0,
+          "literal": "FREE_SHIPPING_FROM",
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/billing/invoice.js",
+            "find": "const shipping = subtotal - discount >= FREE_SHIPPING_FROM ? 0 : 250;"
+          },
+          "source": "code"
+        },
+        {
+          "id": "c-tax",
+          "label": "20% tax",
+          "expr": "round((subtotal − discount) × 0.2)",
+          "value": 2280,
+          "literal": "0.2",
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/billing/invoice.js",
+            "find": "const tax = Math.round((subtotal - discount) * TAX_RATE);"
+          },
+          "source": "code"
+        }
+      ],
+      "result": {
+        "label": "Amount due",
+        "value": 13680
+      }
+    },
+    {
+      "id": "sim",
+      "type": "simulator",
+      "title": "Work it out yourself",
+      "subtitle": "The same rules as in invoice() and refundDecision().",
+      "note": "There are no coupons or international shipping here — the code has none either.",
+      "inputs": [
+        {
+          "id": "subtotal",
+          "label": "Cart total",
+          "kind": "number",
+          "default": 12000,
+          "min": 0,
+          "step": 100,
+          "unit": "UAH"
+        },
+        {
+          "id": "status",
+          "label": "Status",
+          "kind": "select",
+          "default": "delivered",
+          "options": [
+            "delivered",
+            "shipped",
+            "cancelled"
+          ]
+        },
+        {
+          "id": "deliveredDays",
+          "label": "Days after delivery",
+          "kind": "number",
+          "default": 3,
+          "min": 0,
+          "step": 1
+        },
+        {
+          "id": "vip",
+          "label": "VIP",
+          "kind": "boolean",
+          "default": false
+        }
+      ],
+      "outputs": [
+        {
+          "id": "discount",
+          "label": "Discount",
+          "expr": "subtotal >= 10000 ? round(subtotal * 0.05) : 0",
+          "unit": "UAH",
+          "literal": "subtotal * 0.05",
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/billing/invoice.js",
+            "find": "const discount = subtotal >= 10000 ? Math.round(subtotal * 0.05) : 0;"
+          },
+          "source": "code"
+        },
+        {
+          "id": "shipping",
+          "label": "Shipping",
+          "expr": "subtotal - discount >= 3000 ? 0 : 250",
+          "unit": "UAH",
+          "literal": "FREE_SHIPPING_FROM",
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/billing/invoice.js",
+            "find": "const shipping = subtotal - discount >= FREE_SHIPPING_FROM ? 0 : 250;"
+          },
+          "source": "code"
+        },
+        {
+          "id": "tax",
+          "label": "Tax",
+          "expr": "round((subtotal - discount) * 0.2)",
+          "unit": "UAH",
+          "literal": "TAX_RATE",
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/billing/invoice.js",
+            "find": "const tax = Math.round((subtotal - discount) * TAX_RATE);"
+          },
+          "source": "code"
+        },
+        {
+          "id": "total",
+          "label": "Amount due",
+          "expr": "subtotal - discount + shipping + tax",
+          "unit": "UAH",
+          "literal": "subtotal - discount + shipping + tax",
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/billing/invoice.js",
+            "find": "const total = subtotal - discount + shipping + tax;"
+          },
+          "source": "code"
+        },
+        {
+          "id": "refund",
+          "label": "Refund",
+          "expr": "status == 'shipped' ? 'carrier-recall' : status != 'delivered' ? 'undecided' : deliveredDays <= 14 ? (total < 5000 ? 'auto' : 'manual') : vip ? 'manual' : 'reject'",
+          "literal": "days <= 14",
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/refunds/policy.js",
+            "find": "if (days <= 14 && order.total < 5000) return 'auto';"
+          },
+          "source": "code"
+        }
+      ]
+    },
+    {
+      "id": "pay-path",
+      "type": "path-tracer",
+      "title": "Where payment can break",
+      "steps": [
+        {
+          "id": "p-http",
+          "layer": "HTTP",
+          "node": "payOrder",
+          "text": "The request handler finds the order.",
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/api/orders.js",
+            "find": "export async function payOrder(req, res) {"
+          },
+          "source": "code",
+          "failures": [
+            {
+              "id": "f-404",
+              "code": "404",
+              "text": "No order — not_found.",
+              "anchor": {
+                "repo": "checkout",
+                "path": "src/api/orders.js",
+                "find": "if (!order) return res.status(404).json({ error: 'not_found' });"
+              }
+            }
+          ]
+        },
+        {
+          "id": "p-state",
+          "layer": "service",
+          "node": "order.status",
+          "text": "Only an order in pending can be paid.",
+          "failures": [
+            {
+              "id": "f-409",
+              "code": "409",
+              "text": "Any other state — wrong_state.",
+              "anchor": {
+                "repo": "checkout",
+                "path": "src/api/orders.js",
+                "find": "if (order.status !== 'pending') return res.status(409).json({ error: 'wrong_state' });"
+              }
+            }
+          ]
+        },
+        {
+          "id": "p-gw",
+          "layer": "gateway",
+          "node": "payments.charge",
+          "text": "A charge at the external gateway.",
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/payments/gateway.js",
+            "find": "export async function charge(order) {"
+          },
+          "failures": [
+            {
+              "id": "f-402",
+              "code": "402",
+              "text": "The gateway declined — declined.",
+              "anchor": {
+                "repo": "checkout",
+                "path": "src/payments/gateway.js",
+                "find": "if (response.status === 402) return { ok: false, reason: 'declined' };"
+              }
+            },
+            {
+              "id": "f-503",
+              "code": "ServiceUnavailable",
+              "text": "The gateway is unavailable — 503, no retries.",
+              "anchor": {
+                "repo": "checkout",
+                "path": "src/payments/gateway.js",
+                "find": "} catch (err) {",
+                "findEnd": "throw new ServiceUnavailable('payment gateway is down');"
+              }
+            }
+          ]
+        },
+        {
+          "id": "p-save",
+          "layer": "DB",
+          "node": "orders.save",
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/api/orders.js",
+            "find": "await orders.save(paid);"
+          },
+          "failures": []
+        },
+        {
+          "id": "p-pub",
+          "layer": "events",
+          "node": "bus.publish",
+          "text": "order.paid subscribers are called synchronously.",
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/api/orders.js",
+            "find": "bus.publish('order.paid', { id: paid.id, chargeId: result.chargeId });"
+          },
+          "failures": [
+            {
+              "id": "f-sub",
+              "code": "throw in a subscriber",
+              "text": "An exception in a subscriber breaks the response after the save.",
+              "source": "inferred"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "timers",
+      "type": "timeline",
+      "title": "What happens over time",
+      "note": "There are no schedules (cron) in the code; the payment timeout and the reservation start at order creation.",
+      "origin": {
+        "label": "order created",
+        "anchor": {
+          "repo": "checkout",
+          "path": "src/jobs/schedule.js",
+          "find": "export function onOrderCreated(order, timers) {"
+        }
+      },
+      "unit": "s",
+      "lanes": [
+        {
+          "id": "l-pay",
+          "label": "payment"
+        },
+        {
+          "id": "l-stock",
+          "label": "warehouse"
+        }
+      ],
+      "subtitle": "From order creation. In red — the time the order waits for payment: it can still be paid then.",
+      "events": [
+        {
+          "id": "e-r1",
+          "lane": "l-pay",
+          "at": 1,
+          "label": "retry 1",
+          "kind": "retry",
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/jobs/schedule.js",
+            "find": "export const RETRY_DELAYS_MS = [1000, 5000, 30000];"
+          },
+          "source": "code",
+          "text": "The first delay from RETRY_DELAYS_MS."
+        },
+        {
+          "id": "e-r2",
+          "lane": "l-pay",
+          "at": 6,
+          "label": "retry 2",
+          "kind": "retry"
+        },
+        {
+          "id": "e-r3",
+          "lane": "l-pay",
+          "at": 36,
+          "label": "last attempt, then an error",
+          "kind": "retry",
+          "failure": true
+        },
+        {
+          "id": "e-timeout",
+          "lane": "l-pay",
+          "at": 900,
+          "label": "not paid → cancel",
+          "kind": "timeout",
+          "failure": true,
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/jobs/schedule.js",
+            "find": "timers.after(PAYMENT_TIMEOUT_MS, () => timers.cancelIfUnpaid(order.id));"
+          },
+          "source": "code",
+          "text": "A timer set at creation."
+        },
+        {
+          "id": "e-unpaid",
+          "lane": "l-stock",
+          "at": 900,
+          "label": "cancelling releases the reservation earlier",
+          "kind": "event"
+        },
+        {
+          "id": "e-ttl",
+          "lane": "l-stock",
+          "at": 0,
+          "until": 1800,
+          "label": "reserve the goods, then release",
+          "kind": "ttl",
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/jobs/schedule.js",
+            "find": "timers.after(RESERVATION_TTL_MS, () => timers.releaseStock(order.id));"
+          },
+          "source": "code",
+          "text": "A separate timer; fires even if the order is already cancelled."
+        }
+      ],
+      "holds": [
+        {
+          "id": "h-pending",
+          "lane": "l-pay",
+          "from": 0,
+          "until": 900,
+          "label": "the order awaits payment",
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/jobs/schedule.js",
+            "find": "export const PAYMENT_TIMEOUT_MS = 15 * 60 * 1000;"
+          },
+          "source": "code"
+        }
+      ],
+      "anytime": [
+        {
+          "id": "a-pay",
+          "label": "the client pays",
+          "text": "Payment is accepted only in pending; after cancellation — 409.",
+          "during": "h-pending",
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/api/orders.js",
+            "find": "if (order.status !== 'pending') return res.status(409).json({ error: 'wrong_state' });"
+          }
+        },
+        {
+          "id": "a-fail",
+          "label": "charge failure → next retry",
+          "text": "A gateway error does not stop the attempts until the delays run out.",
+          "during": "h-pending",
+          "failure": true,
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/jobs/schedule.js",
+            "find": "await sleep(delay);"
+          }
+        }
+      ]
+    },
+    {
+      "id": "events",
+      "type": "event-topology",
+      "title": "Who listens to order events",
+      "channels": [
+        {
+          "id": "ch-paid",
+          "name": "order.paid",
+          "kind": "topic",
+          "how": "synchronously, in process",
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/events/bus.js",
+            "find": "for (const fn of handlers.get(topic) || []) fn(payload);"
+          },
+          "source": "code",
+          "publishers": [
+            {
+              "name": "payOrder",
+              "anchor": {
+                "repo": "checkout",
+                "path": "src/api/orders.js",
+                "find": "bus.publish('order.paid', { id: paid.id, chargeId: result.chargeId });"
+              }
+            }
+          ],
+          "consumers": [
+            {
+              "name": "receipts.send",
+              "anchor": {
+                "repo": "checkout",
+                "path": "src/events/subscribers.js",
+                "find": "bus.subscribe('order.paid', receipts.send);"
+              }
+            },
+            {
+              "name": "warehouse.reserve",
+              "anchor": {
+                "repo": "checkout",
+                "path": "src/events/subscribers.js",
+                "find": "bus.subscribe('order.paid', warehouse.reserve);"
+              }
+            },
+            {
+              "name": "analytics.track",
+              "anchor": {
+                "repo": "checkout",
+                "path": "src/events/subscribers.js",
+                "find": "bus.subscribe('order.paid', analytics.track);"
+              }
+            }
+          ]
+        },
+        {
+          "id": "ch-shipped",
+          "name": "order.shipped",
+          "kind": "topic",
+          "publishers": [
+            {
+              "name": "markShipped",
+              "anchor": {
+                "repo": "checkout",
+                "path": "src/orders/ship.js",
+                "find": "bus.publish('order.shipped', { id: order.id, tracking });"
+              }
+            }
+          ],
+          "consumers": [
+            {
+              "name": "receipts.sendTracking",
+              "anchor": {
+                "repo": "checkout",
+                "path": "src/events/subscribers.js",
+                "find": "bus.subscribe('order.shipped', receipts.sendTracking);"
+              }
+            }
+          ]
+        },
+        {
+          "id": "ch-refund",
+          "name": "refund.requested",
+          "kind": "topic",
+          "publishers": [
+            {
+              "name": "requestRefund",
+              "anchor": {
+                "repo": "checkout",
+                "path": "src/orders/ship.js",
+                "find": "bus.publish('refund.requested', { id: order.id });"
+              }
+            }
+          ],
+          "consumers": [
+            {
+              "name": "refunds.review",
+              "anchor": {
+                "repo": "checkout",
+                "path": "src/events/subscribers.js",
+                "find": "bus.subscribe('refund.requested', refunds.review);"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "route": [
+    {
+      "block": "answer",
+      "minutes": 1,
+      "why": "The short answer.",
+      "modes": [
+        "short",
+        "full"
+      ]
+    },
+    {
+      "block": "states",
+      "focus": "t-refund-shipped",
+      "minutes": 2,
+      "why": "A refund is possible before delivery.",
+      "modes": [
+        "short",
+        "full"
+      ]
+    },
+    {
+      "block": "pay-seq",
+      "focus": "s-charge",
+      "minutes": 2,
+      "why": "Where exactly the money is charged.",
+      "modes": [
+        "short",
+        "full"
+      ]
+    },
+    {
+      "block": "refund-rules",
+      "focus": "r-vip",
+      "minutes": 2,
+      "why": "Rows that contradict each other.",
+      "modes": [
+        "full"
+      ]
+    },
+    {
+      "block": "invoice",
+      "minutes": 1,
+      "why": "How the amount is computed.",
+      "modes": [
+        "full"
+      ]
+    },
+    {
+      "block": "sim",
+      "minutes": 2,
+      "why": "Try your own numbers.",
+      "modes": [
+        "full"
+      ]
+    },
+    {
+      "block": "pay-path",
+      "focus": "p-gw",
+      "minutes": 2,
+      "why": "Gateway failures.",
+      "modes": [
+        "full"
+      ]
+    },
+    {
+      "block": "timers",
+      "focus": "h-pending",
+      "minutes": 1,
+      "why": "Timeouts and retries.",
+      "modes": [
+        "full"
+      ]
+    },
+    {
+      "block": "events",
+      "minutes": 1,
+      "why": "Who reacts to the payment.",
+      "modes": [
+        "full"
+      ]
+    }
+  ],
+  "openQuestions": [
+    "Should a dispute (disputed) ever close?"
+  ]
+}

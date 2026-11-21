@@ -1,0 +1,961 @@
+{
+  "schema": "verstat.page/1",
+  "skill": "explain-pr",
+  "question": "What does Vite PR #20260 change and how to review it?",
+  "repos": {
+    "vite": {
+      "remote": "https://github.com/vitejs/vite.git",
+      "sha": "2c32c8669c9088e66f36ddee93a51510cddd4706"
+    },
+    "vite@base": {
+      "remote": "https://github.com/vitejs/vite.git",
+      "sha": "f5cc4c0ded337670b439e51bc95f173e2b5cf9ad"
+    }
+  },
+  "glossary": [
+    {
+      "term": "module runner",
+      "code": "ModuleRunner",
+      "aliases": [
+        "module runners",
+        "runner",
+        "runners"
+      ],
+      "definition": "Vite's runtime that executes server-side modules transformed by the dev server (used for SSR); it builds an import.meta object for every module it evaluates.",
+      "anchor": {
+        "repo": "vite",
+        "path": "packages/vite/src/module-runner/runner.ts",
+        "find": "export class ModuleRunner {"
+      },
+      "source": "code"
+    },
+    {
+      "term": "import.meta.resolve",
+      "definition": "A standard ES module API that turns a specifier (\"./app.js\", \"react\") into a full URL, relative to the current module.",
+      "source": "doc"
+    },
+    {
+      "term": "customization hook",
+      "aliases": [
+        "customization hooks",
+        "hook module"
+      ],
+      "code": "module.register",
+      "definition": "Node's module.register(): a module whose resolve() hook runs for every resolution in the process. The PR registers one to smuggle the importer through the specifier.",
+      "anchor": {
+        "repo": "vite",
+        "path": "packages/vite/src/module-runner/importMetaResolver.ts",
+        "find": "module.register(hookModuleContent)"
+      },
+      "source": "code"
+    },
+    {
+      "term": "createImportMeta",
+      "definition": "The new ModuleRunner option: a function that builds import.meta for a module path. Default createDefaultImportMeta (no resolve); createNodeImportMeta adds a working resolve in Node.",
+      "anchor": {
+        "repo": "vite",
+        "path": "packages/vite/src/module-runner/types.ts",
+        "find": "createImportMeta?: ("
+      },
+      "source": "code"
+    }
+  ],
+  "blocks": [
+    {
+      "id": "brief",
+      "type": "brief",
+      "title": "feat(ssr): support import.meta.resolve in module runner",
+      "subtitle": "vitejs/vite#20260 · merged 2025-07-28 as 62835f7",
+      "answer": "Server code run by Vite's module runner can now call import.meta.resolve in Node: import.meta creation moves out of ModuleRunner into a createImportMeta option, and the new createNodeImportMeta resolves through a Node customization hook. Runners that do not opt in keep throwing \"not supported\".",
+      "pr": {
+        "title": "feat(ssr): support `import.meta.resolve` in module runner",
+        "head": "sapphi-red:feat/ssr-support-import-meta-resolve-in-module-runner",
+        "base": "main",
+        "additions": 171,
+        "deletions": 41,
+        "files": 12,
+        "commits": 7
+      },
+      "numbers": [
+        {
+          "id": "n-real",
+          "value": 152,
+          "label": "changed lines to read",
+          "accent": true
+        },
+        {
+          "id": "n-moved",
+          "value": 17,
+          "label": "lines only moved"
+        },
+        {
+          "id": "n-noise",
+          "value": 26,
+          "label": "import lines (noise)"
+        }
+      ],
+      "facts": [
+        {
+          "id": "f-opt",
+          "text": "New option ModuleRunnerOptions.createImportMeta; the default keeps the old behaviour.",
+          "anchor": {
+            "repo": "vite",
+            "path": "packages/vite/src/module-runner/runner.ts",
+            "find": "this.options.createImportMeta ?? createDefaultImportMeta"
+          },
+          "source": "code"
+        },
+        {
+          "id": "f-hook",
+          "text": "Resolution goes through a data: URL hook module registered with module.register.",
+          "anchor": {
+            "repo": "vite",
+            "path": "packages/vite/src/module-runner/importMetaResolver.ts",
+            "find": "module.register(hookModuleContent)"
+          },
+          "source": "code"
+        },
+        {
+          "id": "f-wire",
+          "text": "Vite's own SSR runners (ssrLoadModule and createServerModuleRunner) opt in.",
+          "anchor": {
+            "repo": "vite",
+            "path": "packages/vite/src/node/ssr/runtime/serverModuleRunner.ts",
+            "find": "createImportMeta: createNodeImportMeta,"
+          },
+          "source": "code"
+        }
+      ]
+    },
+    {
+      "id": "claims",
+      "type": "claimed-vs-done",
+      "title": "Claimed vs done",
+      "claims": [
+        {
+          "id": "cl-1",
+          "status": "found",
+          "text": "This PR adds import.meta.resolve support to the module runner.",
+          "note": "createNodeImportMeta returns a resolve() backed by the hook resolver.",
+          "anchor": {
+            "repo": "vite",
+            "path": "packages/vite/src/module-runner/createImportMeta.ts",
+            "find": "return resolver(id, parent ?? href)"
+          }
+        },
+        {
+          "id": "cl-2",
+          "status": "found",
+          "text": "This approach only works in Node as it relies on module customization hooks",
+          "note": "Without node:module.register the resolver is undefined and resolve() falls back to the default that throws.",
+          "anchor": {
+            "repo": "vite",
+            "path": "packages/vite/src/module-runner/importMetaResolver.ts",
+            "find": "if (!module?.register) {"
+          }
+        },
+        {
+          "id": "cl-3",
+          "status": "partial",
+          "text": "does not require users to pass --experimental-import-meta-resolve",
+          "note": "The second argument of import.meta.resolve is not used: the importer travels inside the specifier, so no flag is needed. The PR does not test it on an old Node, though.",
+          "anchor": {
+            "repo": "vite",
+            "path": "packages/vite/src/module-runner/importMetaResolver.ts",
+            "find": "`${customizationHookNamespace}${JSON.stringify([specifier, importer])}`,"
+          }
+        }
+      ]
+    },
+    {
+      "id": "commits",
+      "type": "commits",
+      "title": "Commits",
+      "subtitle": "Seven commits, no merges from main.",
+      "commits": [
+        {
+          "id": "c1",
+          "sha": "3e7ce4694d984c8fb156a4ab9849b67e935e71da",
+          "parents": [
+            "f5cc4c0ded337670b439e51bc95f173e2b5cf9ad"
+          ],
+          "message": "feat(ssr): support `import.meta.resolve` in module runner",
+          "intent": "Add a resolver built on a Node customization hook and use it for import.meta.resolve.",
+          "additions": 74,
+          "deletions": 1,
+          "files": [
+            "packages/vite/src/module-runner/importMetaResolver.ts",
+            "packages/vite/src/module-runner/runner.ts",
+            "playground/ssr/__tests__/ssr.spec.ts",
+            "playground/ssr/src/app.js"
+          ]
+        },
+        {
+          "id": "c2",
+          "sha": "a4e9f6429547aeea50bee2fe3eb5ec1ddd0e3812",
+          "parents": [
+            "3e7ce4694d984c8fb156a4ab9849b67e935e71da"
+          ],
+          "message": "fix: add try-catch for `ERR_NETWORK_IMPORT_DISALLOWED`",
+          "intent": "Do not fail on Node versions that refuse data: hook modules under --experimental-network-imports.",
+          "additions": 10,
+          "deletions": 2,
+          "files": [
+            "packages/vite/src/module-runner/importMetaResolver.ts"
+          ]
+        },
+        {
+          "id": "c3",
+          "sha": "b014a94b1a1776d831c2f1e6bb884a737004f22f",
+          "parents": [
+            "a4e9f6429547aeea50bee2fe3eb5ec1ddd0e3812"
+          ],
+          "message": "refactor: remove `shortCircuit: true`",
+          "intent": "Let the hook fall through to the next resolver instead of short-circuiting.",
+          "additions": 1,
+          "deletions": 5,
+          "files": [
+            "packages/vite/src/module-runner/importMetaResolver.ts"
+          ]
+        },
+        {
+          "id": "c4",
+          "sha": "759248aa97c1297af03246ceb283fc49cb7a005f",
+          "parents": [
+            "b014a94b1a1776d831c2f1e6bb884a737004f22f"
+          ],
+          "message": "fix: consider when `module.Module` is `undefined`",
+          "intent": "Survive a mocked node:module whose Module export is missing.",
+          "additions": 2,
+          "deletions": 1,
+          "files": [
+            "packages/vite/src/module-runner/importMetaResolver.ts"
+          ]
+        },
+        {
+          "id": "c5",
+          "sha": "07256bbb363abc45c1a0738704120338815b0590",
+          "parents": [
+            "759248aa97c1297af03246ceb283fc49cb7a005f"
+          ],
+          "message": "feat: add `createImportMeta` option to ModuleRunner",
+          "intent": "Move import.meta creation out of the runner into a pluggable createImportMeta option; Vite's Node runners pass createNodeImportMeta.",
+          "additions": 106,
+          "deletions": 52,
+          "files": [
+            "docs/guide/api-environment-runtimes.md",
+            "packages/vite/src/module-runner/createImportMeta.ts",
+            "packages/vite/src/module-runner/index.ts",
+            "packages/vite/src/module-runner/runner.ts",
+            "packages/vite/src/module-runner/types.ts",
+            "packages/vite/src/node/ssr/runtime/__tests__/fixtures/worker.invoke.mjs",
+            "packages/vite/src/node/ssr/runtime/__tests__/fixtures/worker.mjs",
+            "packages/vite/src/node/ssr/runtime/serverModuleRunner.ts",
+            "packages/vite/src/node/ssr/ssrModuleLoader.ts"
+          ]
+        },
+        {
+          "id": "c6",
+          "sha": "442d9476aea7e1b1b7ddb4ef9aaf76627f464256",
+          "parents": [
+            "07256bbb363abc45c1a0738704120338815b0590"
+          ],
+          "message": "refactor: tweak",
+          "intent": "Small cleanup of createNodeImportMeta.",
+          "additions": 2,
+          "deletions": 4,
+          "files": [
+            "packages/vite/src/module-runner/createImportMeta.ts"
+          ]
+        },
+        {
+          "id": "c7",
+          "sha": "2c32c8669c9088e66f36ddee93a51510cddd4706",
+          "parents": [
+            "442d9476aea7e1b1b7ddb4ef9aaf76627f464256"
+          ],
+          "message": "chore: update jsdoc",
+          "intent": "Document the option's default in its JSDoc.",
+          "additions": 1,
+          "deletions": 1,
+          "files": [
+            "packages/vite/src/module-runner/types.ts"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rules",
+      "type": "decision-table",
+      "title": "What import.meta.resolve does now",
+      "subtitle": "Diff mode shows the rows this PR adds.",
+      "conditions": [
+        {
+          "id": "runner",
+          "label": "Runner"
+        },
+        {
+          "id": "node",
+          "label": "node:module.register"
+        }
+      ],
+      "outcomeLabel": "import.meta.resolve(id)",
+      "rows": [
+        {
+          "id": "r-default",
+          "when": {
+            "runner": "no createImportMeta",
+            "node": "*"
+          },
+          "outcome": "throws \"not supported\"",
+          "literal": "\"import.meta.resolve\" is not supported.",
+          "anchor": {
+            "repo": "vite",
+            "path": "packages/vite/src/module-runner/createImportMeta.ts",
+            "find": "throw new Error('[module runner] \"import.meta.resolve\" is not supported.')"
+          },
+          "source": "code",
+          "change": "changed",
+          "before": {
+            "literal": "\"import.meta.resolve\" is not supported.",
+            "anchor": {
+              "repo": "vite@base",
+              "path": "packages/vite/src/module-runner/runner.ts",
+              "find": "'[module runner] \"import.meta.resolve\" is not supported.',"
+            },
+            "outcome": "throws \"not supported\""
+          },
+          "note": "Same behaviour, now in createDefaultImportMeta instead of inside ModuleRunner."
+        },
+        {
+          "id": "r-node",
+          "when": {
+            "runner": "createNodeImportMeta",
+            "node": "available"
+          },
+          "outcome": "resolved by Node against the module's URL",
+          "literal": "return resolver(id, parent ?? href)",
+          "anchor": {
+            "repo": "vite",
+            "path": "packages/vite/src/module-runner/createImportMeta.ts",
+            "find": "return resolver(id, parent ?? href)"
+          },
+          "source": "code",
+          "change": "added"
+        },
+        {
+          "id": "r-nomodule",
+          "when": {
+            "runner": "createNodeImportMeta",
+            "node": "missing or mocked"
+          },
+          "outcome": "throws \"not supported\" (fallback)",
+          "literal": "if (!module?.register) {",
+          "anchor": {
+            "repo": "vite",
+            "path": "packages/vite/src/module-runner/importMetaResolver.ts",
+            "find": "if (!module?.register) {"
+          },
+          "source": "code",
+          "change": "added"
+        },
+        {
+          "id": "r-netimp",
+          "when": {
+            "runner": "createNodeImportMeta",
+            "node": "refuses data: hooks"
+          },
+          "outcome": "throws \"not supported\" (fallback)",
+          "literal": "e.code === 'ERR_NETWORK_IMPORT_DISALLOWED'",
+          "anchor": {
+            "repo": "vite",
+            "path": "packages/vite/src/module-runner/importMetaResolver.ts",
+            "find": "if ('code' in e && e.code === 'ERR_NETWORK_IMPORT_DISALLOWED') {"
+          },
+          "source": "code",
+          "change": "added"
+        },
+        {
+          "id": "r-vite",
+          "when": {
+            "runner": "Vite SSR (ssrLoadModule)",
+            "node": "available"
+          },
+          "outcome": "resolved: Vite passes createNodeImportMeta",
+          "literal": "createImportMeta: createNodeImportMeta,",
+          "anchor": {
+            "repo": "vite",
+            "path": "packages/vite/src/node/ssr/ssrModuleLoader.ts",
+            "find": "createImportMeta: createNodeImportMeta,"
+          },
+          "source": "code",
+          "change": "added"
+        }
+      ]
+    },
+    {
+      "id": "docs",
+      "type": "doc-changes",
+      "title": "Documentation",
+      "repo": "vite",
+      "base": "vite@base",
+      "files": [
+        {
+          "id": "d-runtimes",
+          "path": "docs/guide/api-environment-runtimes.md",
+          "summary": "Both runner examples now pass createImportMeta: createNodeImportMeta.",
+          "fragments": [
+            {
+              "id": "d-1",
+              "find": "createImportMeta: createNodeImportMeta, // if the module runner runs in Node.js",
+              "kind": "read",
+              "title": "Module runner example",
+              "summary": "The basic example opts into Node import.meta and says when to.",
+              "commit": "07256bbb363abc45c1a0738704120338815b0590"
+            },
+            {
+              "id": "d-2",
+              "find": "import { parentPort } from 'node:worker_threads'",
+              "kind": "skim",
+              "title": "Worker example imports",
+              "summary": "The worker example imports createNodeImportMeta.",
+              "commit": "07256bbb363abc45c1a0738704120338815b0590"
+            },
+            {
+              "id": "d-3",
+              "find": "const runner = new ModuleRunner(",
+              "kind": "skim",
+              "title": "Worker example option",
+              "summary": "The worker runner passes the option.",
+              "commit": "07256bbb363abc45c1a0738704120338815b0590"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "layer-new",
+      "type": "changes",
+      "title": "New modules: the resolver and the import.meta factory",
+      "subtitle": "Read first: everything else only calls these two files.",
+      "repo": "vite",
+      "base": "vite@base",
+      "files": [
+        {
+          "id": "fl-resolver",
+          "path": "packages/vite/src/module-runner/importMetaResolver.ts",
+          "fragments": [
+            {
+              "id": "fr-resolver",
+              "kind": "read",
+              "title": "Resolver on a Node customization hook",
+              "description": "Registers a data: URL hook module whose resolve() unpacks [specifier, importer] from a namespaced specifier, then resolves with import.meta.resolve of this file. Returns undefined where hooks are unavailable.",
+              "function": "createImportMetaResolver",
+              "commit": "3e7ce4694d984c8fb156a4ab9849b67e935e71da",
+              "notes": [
+                {
+                  "id": "nt-ns",
+                  "at": {
+                    "find": "context.parentURL = parsedImporter"
+                  },
+                  "text": "The trick: the importer is passed inside the specifier and restored here, so the second argument of import.meta.resolve (behind a flag in Node) is never needed.",
+                  "source": "code"
+                },
+                {
+                  "id": "nt-reg",
+                  "at": {
+                    "find": "module.register(hookModuleContent)"
+                  },
+                  "text": "Registered for the whole process, once per resolver creation; createNodeImportMeta caches the promise so it happens once.",
+                  "source": "inferred"
+                },
+                {
+                  "id": "nt-err",
+                  "at": {
+                    "find": "if ('code' in e && e.code === 'ERR_NETWORK_IMPORT_DISALLOWED') {"
+                  },
+                  "text": "Only this error code is swallowed; any other register failure propagates to the module being evaluated.",
+                  "source": "code"
+                }
+              ],
+              "test": {
+                "name": "import.meta.resolve is supported",
+                "anchor": {
+                  "repo": "vite",
+                  "path": "playground/ssr/__tests__/ssr.spec.ts",
+                  "find": "test(`import.meta.resolve is supported`, async () => {",
+                  "findEnd": "})"
+                },
+                "description": "Renders a page whose server code calls import.meta.resolve and checks the result equals import.meta.url of the same file."
+              }
+            }
+          ]
+        },
+        {
+          "id": "fl-meta",
+          "path": "packages/vite/src/module-runner/createImportMeta.ts",
+          "fragments": [
+            {
+              "id": "fr-meta",
+              "kind": "read",
+              "title": "Default and Node import.meta factories",
+              "description": "createDefaultImportMeta is the old inline object, moved; createNodeImportMeta spreads it and replaces resolve() with the hook resolver, falling back to the throwing default.",
+              "function": "createNodeImportMeta",
+              "commit": "07256bbb363abc45c1a0738704120338815b0590",
+              "notes": [
+                {
+                  "id": "nt-cache",
+                  "at": {
+                    "find": "importMetaResolverCache ??= createImportMetaResolver()"
+                  },
+                  "text": "Module-level cache: the hook is registered on the first module evaluated, for the life of the process.",
+                  "source": "code"
+                },
+                {
+                  "id": "nt-parent",
+                  "at": {
+                    "find": "return resolver(id, parent ?? href)"
+                  },
+                  "text": "Without a parent, resolution is relative to the evaluated module's own URL, as in native ESM.",
+                  "source": "code"
+                }
+              ],
+              "test": {
+                "name": "import.meta.resolve is supported",
+                "anchor": {
+                  "repo": "vite",
+                  "path": "playground/ssr/__tests__/ssr.spec.ts",
+                  "find": "test(`import.meta.resolve is supported`, async () => {",
+                  "findEnd": "})"
+                },
+                "description": "Renders a page whose server code calls import.meta.resolve and checks the result equals import.meta.url of the same file."
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "layer-runner",
+      "type": "changes",
+      "title": "The runner: a pluggable createImportMeta option",
+      "subtitle": "Then how ModuleRunner uses the factory.",
+      "repo": "vite",
+      "base": "vite@base",
+      "files": [
+        {
+          "id": "fl-types",
+          "path": "packages/vite/src/module-runner/types.ts",
+          "fragments": [
+            {
+              "id": "fr-types",
+              "kind": "skim",
+              "title": "createImportMeta option",
+              "description": "New optional ModuleRunnerOptions.createImportMeta, sync or async, defaulting to createDefaultImportMeta.",
+              "function": "ModuleRunnerOptions",
+              "commit": "07256bbb363abc45c1a0738704120338815b0590"
+            }
+          ]
+        },
+        {
+          "id": "fl-runner",
+          "path": "packages/vite/src/module-runner/runner.ts",
+          "fragments": [
+            {
+              "id": "fr-typeimport",
+              "kind": "skip",
+              "title": "Unused type import",
+              "description": "ModuleRunnerImportMeta is no longer used here; the multi-line type import loses it.",
+              "function": "imports",
+              "commit": "07256bbb363abc45c1a0738704120338815b0590",
+              "at": {
+                "find": "  ModuleRunnerImportMeta,",
+                "side": "base"
+              }
+            },
+            {
+              "id": "fr-envproxy",
+              "kind": "skip",
+              "title": "envProxy field removed",
+              "description": "The env proxy moved to createImportMeta.ts as a module-level constant; these are the lines of the field around the moved body.",
+              "function": "ModuleRunner",
+              "commit": "07256bbb363abc45c1a0738704120338815b0590",
+              "at": {
+                "find": "private readonly envProxy = new Proxy({} as any, {",
+                "findEnd": "  })",
+                "side": "base"
+              }
+            },
+            {
+              "id": "fr-call",
+              "kind": "read",
+              "title": "import.meta built by the option",
+              "description": "directRequest now calls this.options.createImportMeta (or the default) and awaits it, so creating import.meta may be async.",
+              "function": "directRequest",
+              "commit": "07256bbb363abc45c1a0738704120338815b0590",
+              "at": {
+                "find": "const createImportMeta =",
+                "findEnd": "const exports = Object.create(null)"
+              },
+              "notes": [
+                {
+                  "id": "nt-await",
+                  "at": {
+                    "find": "const meta = await createImportMeta(modulePath)"
+                  },
+                  "text": "A new await on the path of every module evaluation; with the default factory it resolves immediately.",
+                  "source": "inferred"
+                }
+              ],
+              "test": {
+                "name": "import.meta.resolve is supported",
+                "anchor": {
+                  "repo": "vite",
+                  "path": "playground/ssr/__tests__/ssr.spec.ts",
+                  "find": "test(`import.meta.resolve is supported`, async () => {",
+                  "findEnd": "})"
+                },
+                "description": "Renders a page whose server code calls import.meta.resolve and checks the result equals import.meta.url of the same file."
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "layer-wiring",
+      "type": "changes",
+      "title": "Wiring: Vite's Node runners opt in",
+      "subtitle": "Last: where Vite itself turns the feature on.",
+      "repo": "vite",
+      "base": "vite@base",
+      "files": [
+        {
+          "id": "fl-loader",
+          "path": "packages/vite/src/node/ssr/ssrModuleLoader.ts",
+          "fragments": [
+            {
+              "id": "fr-loader",
+              "kind": "skim",
+              "title": "ssrLoadModule runner",
+              "description": "The runner behind server.ssrLoadModule passes createNodeImportMeta.",
+              "function": "SSRCompatModuleRunner",
+              "commit": "07256bbb363abc45c1a0738704120338815b0590",
+              "test": {
+                "name": "import.meta.resolve is supported",
+                "anchor": {
+                  "repo": "vite",
+                  "path": "playground/ssr/__tests__/ssr.spec.ts",
+                  "find": "test(`import.meta.resolve is supported`, async () => {",
+                  "findEnd": "})"
+                },
+                "description": "Renders a page whose server code calls import.meta.resolve and checks the result equals import.meta.url of the same file."
+              }
+            }
+          ]
+        },
+        {
+          "id": "fl-server",
+          "path": "packages/vite/src/node/ssr/runtime/serverModuleRunner.ts",
+          "fragments": [
+            {
+              "id": "fr-server",
+              "kind": "skim",
+              "title": "createServerModuleRunner",
+              "description": "The public createServerModuleRunner passes createNodeImportMeta too.",
+              "function": "createServerModuleRunner",
+              "commit": "07256bbb363abc45c1a0738704120338815b0590"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tests",
+      "type": "test-coverage",
+      "title": "Test coverage",
+      "mode": "diff",
+      "files": [
+        {
+          "path": "playground/ssr/__tests__/ssr.spec.ts"
+        },
+        {
+          "path": "playground/ssr/src/app.js"
+        },
+        {
+          "path": "packages/vite/src/node/ssr/runtime/__tests__/fixtures/worker.mjs"
+        },
+        {
+          "path": "packages/vite/src/node/ssr/runtime/__tests__/fixtures/worker.invoke.mjs"
+        }
+      ]
+    },
+    {
+      "id": "moved",
+      "type": "moved-code",
+      "title": "Moved code",
+      "subtitle": "From ModuleRunner into createImportMeta.ts, unchanged.",
+      "items": [
+        {
+          "id": "moved-1",
+          "title": "import.meta.glob stub moved into createDefaultImportMeta",
+          "from": {
+            "path": "packages/vite/src/module-runner/runner.ts",
+            "start": 369,
+            "end": 376
+          },
+          "to": {
+            "path": "packages/vite/src/module-runner/createImportMeta.ts",
+            "start": 31,
+            "end": 38
+          },
+          "lines": 8,
+          "body": "    // should be replaced during transformation\n    glob() {\n      throw new Error(\n        `[module runner] \"import.meta.glob\" is statically replaced during ` +\n          `file transformation. Make sure to reference it by the full name.`,\n      )\n    },\n  }"
+        },
+        {
+          "id": "moved-2",
+          "title": "The import.meta.env proxy moved out of the runner class",
+          "from": {
+            "path": "packages/vite/src/module-runner/runner.ts",
+            "start": 47,
+            "end": 52
+          },
+          "to": {
+            "path": "packages/vite/src/module-runner/createImportMeta.ts",
+            "start": 10,
+            "end": 15
+          },
+          "lines": 6,
+          "body": "  get(_, p) {\n    throw new Error(\n      `[module runner] Dynamic access of \"import.meta.env\" is not supported. Please, use \"import.meta.env.${String(p)}\" instead.`,\n    )\n  },\n})"
+        },
+        {
+          "id": "moved-3",
+          "title": "filename / dirname / url fields moved into createDefaultImportMeta",
+          "from": {
+            "path": "packages/vite/src/module-runner/runner.ts",
+            "start": 360,
+            "end": 362
+          },
+          "to": {
+            "path": "packages/vite/src/module-runner/createImportMeta.ts",
+            "start": 24,
+            "end": 26
+          },
+          "lines": 3,
+          "body": "    filename: isWindows ? toWindowsPath(filename) : filename,\n    dirname: isWindows ? toWindowsPath(dirname) : dirname,\n    url: href,"
+        }
+      ]
+    },
+    {
+      "id": "noise",
+      "type": "noise",
+      "title": "Noise",
+      "items": [
+        {
+          "id": "noise-imports",
+          "kind": "imports",
+          "title": "Imports and re-exports of createNodeImportMeta / createDefaultImportMeta",
+          "paths": [
+            "packages/vite/src/module-runner/index.ts",
+            "packages/vite/src/module-runner/runner.ts",
+            "packages/vite/src/node/ssr/runtime/__tests__/fixtures/worker.invoke.mjs",
+            "packages/vite/src/node/ssr/runtime/__tests__/fixtures/worker.mjs",
+            "packages/vite/src/node/ssr/runtime/serverModuleRunner.ts",
+            "packages/vite/src/node/ssr/ssrModuleLoader.ts"
+          ],
+          "lines": 26,
+          "body": "packages/vite/src/module-runner/index.ts\n+ export {\n+   createDefaultImportMeta,\n+   createNodeImportMeta,\n+ } from './createImportMeta'\npackages/vite/src/module-runner/runner.ts\n- import { cleanUrl, isPrimitive, isWindows } from '../shared/utils'\n+ import { cleanUrl, isPrimitive } from '../shared/utils'\n- import {\n-   posixDirname,\n-   posixPathToFileHref,\n-   posixResolve,\n-   toWindowsPath,\n- } from './utils'\n+ import { posixDirname, posixPathToFileHref, posixResolve } from './utils'\n+ import { createDefaultImportMeta } from './createImportMeta'\npackages/vite/src/node/ssr/runtime/__tests__/fixtures/worker.invoke.mjs\n- import { ESModulesEvaluator, ModuleRunner } from 'vite/module-runner'\n+ import { ESModulesEvaluator, ModuleRunner, createNodeImportMeta } from 'vite/module-runner'\npackages/vite/src/node/ssr/runtime/__tests__/fixtures/worker.mjs\n- import { ESModulesEvaluator, ModuleRunner } from 'vite/module-runner'\n+ import { ESModulesEvaluator, ModuleRunner, createNodeImportMeta } from 'vite/module-runner'\npackages/vite/src/node/ssr/runtime/serverModuleRunner.ts\n- import { ModuleRunner } from 'vite/module-runner'\n+ import { ModuleRunner, createNodeImportMeta } from 'vite/module-runner'\npackages/vite/src/node/ssr/ssrModuleLoader.ts\n- import { ESModulesEvaluator, ModuleRunner } from 'vite/module-runner'\n+ import {\n+   ESModulesEvaluator,\n+   ModuleRunner,\n+   createNodeImportMeta,\n+ } from 'vite/module-runner'"
+        }
+      ]
+    },
+    {
+      "id": "risks",
+      "type": "risks",
+      "title": "Risks",
+      "risks": [
+        {
+          "id": "rk-global",
+          "severity": "medium",
+          "title": "Process-wide hook",
+          "consequence": "The resolve hook stays registered for the whole Node process and sees every resolution; a bug in it would affect code outside Vite.",
+          "anchor": {
+            "repo": "vite",
+            "path": "packages/vite/src/module-runner/importMetaResolver.ts",
+            "find": "module.register(hookModuleContent)"
+          },
+          "source": "inferred"
+        },
+        {
+          "id": "rk-server",
+          "severity": "low",
+          "title": "createServerModuleRunner path untested",
+          "consequence": "Only the ssrLoadModule path is exercised by the new playground test.",
+          "anchor": {
+            "repo": "vite",
+            "path": "packages/vite/src/node/ssr/runtime/serverModuleRunner.ts",
+            "find": "createImportMeta: createNodeImportMeta,"
+          },
+          "source": "inferred"
+        }
+      ]
+    },
+    {
+      "id": "questions",
+      "type": "open-questions",
+      "title": "Open questions"
+    },
+    {
+      "id": "focus",
+      "type": "reviewer-focus",
+      "title": "What to look at",
+      "items": [
+        {
+          "id": "rf-hook",
+          "title": "The hook's specifier encoding",
+          "text": "Check that JSON in the specifier survives every importer (Windows paths, file URLs with %), and that non-namespaced specifiers pass through untouched.",
+          "anchor": {
+            "repo": "vite",
+            "path": "packages/vite/src/module-runner/importMetaResolver.ts",
+            "find": "if (specifier.startsWith(${JSON.stringify(customizationHookNamespace)})) {"
+          },
+          "source": "inferred"
+        },
+        {
+          "id": "rf-fallback",
+          "title": "Fallback paths",
+          "text": "Where hooks are unavailable resolve() still throws \"not supported\"; confirm that is the message users should see.",
+          "anchor": {
+            "repo": "vite",
+            "path": "packages/vite/src/module-runner/createImportMeta.ts",
+            "find": "const resolver = importMetaResolver ?? defaultMeta.resolve"
+          },
+          "source": "code"
+        },
+        {
+          "id": "rf-api",
+          "title": "Public API",
+          "text": "createDefaultImportMeta and createNodeImportMeta are new exports of vite/module-runner.",
+          "anchor": {
+            "repo": "vite",
+            "path": "packages/vite/src/module-runner/index.ts",
+            "find": "  createNodeImportMeta,"
+          },
+          "source": "code"
+        }
+      ]
+    }
+  ],
+  "route": [
+    {
+      "block": "brief",
+      "minutes": 0.5,
+      "why": "What the PR does in two sentences.",
+      "modes": [
+        "short",
+        "full"
+      ]
+    },
+    {
+      "block": "claims",
+      "minutes": 1,
+      "why": "Does the code do what the description says?",
+      "modes": [
+        "short",
+        "full"
+      ]
+    },
+    {
+      "block": "commits",
+      "minutes": 0.5,
+      "why": "Seven commits; the fifth carries most of the change.",
+      "modes": [
+        "full"
+      ]
+    },
+    {
+      "block": "rules",
+      "focus": "r-node",
+      "minutes": 1,
+      "why": "When import.meta.resolve works now and when it still throws.",
+      "modes": [
+        "full"
+      ]
+    },
+    {
+      "block": "docs",
+      "minutes": 0.5,
+      "why": "The guide shows the new option.",
+      "modes": [
+        "full"
+      ]
+    },
+    {
+      "block": "layer-new",
+      "minutes": 3,
+      "why": "The two new modules, where the logic is.",
+      "modes": [
+        "full"
+      ]
+    },
+    {
+      "block": "layer-runner",
+      "minutes": 1.5,
+      "why": "How the runner calls the factory.",
+      "modes": [
+        "full"
+      ]
+    },
+    {
+      "block": "layer-wiring",
+      "minutes": 0.5,
+      "why": "Where Vite opts in.",
+      "modes": [
+        "full"
+      ]
+    },
+    {
+      "block": "tests",
+      "minutes": 0.5,
+      "why": "Which fragments a test covers.",
+      "modes": [
+        "full"
+      ]
+    },
+    {
+      "block": "moved",
+      "minutes": 0.5,
+      "why": "Skip what only moved.",
+      "modes": [
+        "full"
+      ]
+    },
+    {
+      "block": "noise",
+      "minutes": 0.25,
+      "why": "Skip the import churn.",
+      "modes": [
+        "full"
+      ]
+    },
+    {
+      "block": "risks",
+      "minutes": 0.5,
+      "why": "What could go wrong.",
+      "modes": [
+        "full"
+      ]
+    },
+    {
+      "block": "focus",
+      "minutes": 1,
+      "why": "Where to spend review time.",
+      "modes": [
+        "short",
+        "full"
+      ]
+    }
+  ],
+  "openQuestions": [
+    "The hook module is registered once per process and never unregistered; whether two Vite servers in one process (tests, monorepo tooling) share it safely is not shown by the PR."
+  ]
+}

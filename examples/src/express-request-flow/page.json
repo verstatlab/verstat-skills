@@ -1,0 +1,238 @@
+{
+  "schema": "verstat.page/1",
+  "skill": "explain",
+  "question": "How does a request travel through app.use middleware, the router and the error handler in Express 5?",
+  "repos": {
+    "express": { "remote": "https://github.com/expressjs/express.git", "sha": "cf6722bf89a86905281d9160b6482e08166b5ef0" },
+    "router": { "remote": "https://github.com/pillarjs/router.git", "sha": "e6d6b609fc355e558174ccd5b1db646f739fe88c" },
+    "finalhandler": { "remote": "https://github.com/pillarjs/finalhandler.git", "sha": "c1832e03e0a8568104b77e1bab11845170187be8" }
+  },
+  "glossary": [
+    {
+      "term": "middleware",
+      "aliases": ["middlewares"],
+      "definition": "A function (req, res, next) registered with app.use; it runs for every request whose path starts with its mount path.",
+      "anchor": { "repo": "express", "path": "lib/application.js", "find": "app.use = function use(fn) {" },
+      "source": "code"
+    },
+    {
+      "term": "layer",
+      "code": "Layer",
+      "aliases": ["layers"],
+      "definition": "One entry of the router's stack: a path matcher plus the function to call. app.use adds a prefix-matching layer, app.get/app.route an exact-matching one that holds a route.",
+      "anchor": { "repo": "router", "path": "lib/layer.js", "find": "function Layer (path, options, fn) {" },
+      "source": "code"
+    },
+    {
+      "term": "stack",
+      "definition": "The router's ordered list of layers, walked from the first to the last for each request.",
+      "anchor": { "repo": "router", "path": "index.js", "find": "const stack = this.stack" },
+      "source": "code"
+    },
+    {
+      "term": "route",
+      "code": "Route",
+      "aliases": ["routes"],
+      "definition": "The handlers registered for one path with app.get, app.post and so on; it has its own small stack filtered by HTTP method.",
+      "anchor": { "repo": "router", "path": "lib/route.js", "find": "Route.prototype.dispatch = function dispatch (req, res, done) {" },
+      "source": "code"
+    },
+    {
+      "term": "error handler",
+      "aliases": ["error handlers", "error middleware"],
+      "definition": "A middleware declared with four parameters (err, req, res, next). The router only calls it while an error is pending.",
+      "anchor": { "repo": "router", "path": "lib/layer.js", "find": "Layer.prototype.handleError = function handleError (error, req, res, next) {" },
+      "source": "code"
+    },
+    {
+      "term": "final handler",
+      "code": "finalhandler",
+      "definition": "The callback the router calls when it runs out of layers: it answers 404 when no error is pending and an error status otherwise.",
+      "anchor": { "repo": "express", "path": "lib/application.js", "find": "var done = callback || finalhandler(req, res, {" },
+      "source": "code"
+    },
+    {
+      "term": "next",
+      "definition": "The callback each handler gets. next() moves on, next(err) switches to error mode, next('route') skips the rest of the route, next('router') leaves the router.",
+      "anchor": { "repo": "router", "path": "index.js", "find": "function next (err) {" },
+      "source": "code"
+    }
+  ],
+  "blocks": [
+    {
+      "id": "brief",
+      "type": "brief",
+      "title": "A request through Express 5",
+      "subtitle": "express 5.3.0 · router 2.2.0 · finalhandler 2.1.0",
+      "answer": "The app is a plain function that hands each request to one router; the router walks its stack of layers in registration order, calling each layer whose path matches. Once a handler calls next(err) or throws, the router keeps walking but calls only four-argument error handlers; when the stack runs out, finalhandler answers with 404 or the error's status.",
+      "facts": [
+        { "id": "f-app", "text": "app(req, res) is just app.handle(req, res, next): Express itself adds no pipeline of its own.", "anchor": { "repo": "express", "path": "lib/express.js", "find": "app.handle(req, res, next);" }, "source": "code" },
+        { "id": "f-order", "text": "Order is registration order: app.use and app.get both push a layer onto the same stack.", "anchor": { "repo": "router", "path": "index.js", "find": "this.stack.push(layer)", "nth": 1 }, "source": "code" },
+        { "id": "f-arity", "text": "Whether a function is an error handler is decided by its arity alone (fn.length).", "anchor": { "repo": "router", "path": "lib/layer.js", "find": "if (fn.length !== 4) {" }, "source": "code" },
+        { "id": "f-async", "text": "Express 5 catches rejected promises: an async handler that throws ends up in next(err).", "anchor": { "repo": "router", "path": "lib/layer.js", "find": "next(error || new Error('Rejected promise'))", "nth": 2 }, "source": "code" },
+        { "id": "f-404", "text": "No matching layer means 404 'Cannot GET /path', produced by finalhandler, not by Express.", "anchor": { "repo": "finalhandler", "path": "index.js", "find": "msg = 'Cannot ' + req.method + ' ' + encodeUrl(getResourceName(req))" }, "source": "code" }
+      ]
+    },
+    { "id": "glossary", "type": "glossary", "title": "Terms" },
+    {
+      "id": "map",
+      "type": "system-map",
+      "title": "Who takes part",
+      "subtitle": "Three packages: express builds the app, router walks the stack, finalhandler writes the last response.",
+      "level": "module",
+      "groups": [
+        { "id": "g-express", "label": "express" },
+        { "id": "g-router", "label": "router" },
+        { "id": "g-final", "label": "finalhandler" }
+      ],
+      "levels": [
+        {
+          "level": "module",
+          "nodes": [
+            { "id": "client", "label": "HTTP server", "kind": "client", "note": "Node's http server calls app(req, res) for every request." },
+            { "id": "app", "label": "app (application.js)", "kind": "module", "group": "g-express", "highlight": true, "note": "Sets prototypes and X-Powered-By, then hands over to the router.", "anchors": [{ "repo": "express", "path": "lib/application.js", "find": "app.handle = function handle(req, res, callback) {" }], "source": "code" },
+            { "id": "router", "label": "Router (index.js)", "kind": "module", "group": "g-router", "highlight": true, "note": "Walks the stack with next().", "anchors": [{ "repo": "router", "path": "index.js", "find": "Router.prototype.handle = function handle (req, res, callback) {" }], "source": "code" },
+            { "id": "layer", "label": "Layer (layer.js)", "kind": "module", "group": "g-router", "note": "Matches a path; calls a handler or an error handler.", "anchors": [{ "repo": "router", "path": "lib/layer.js", "find": "Layer.prototype.handleRequest = function handleRequest (req, res, next) {" }], "source": "code" },
+            { "id": "route", "label": "Route (route.js)", "kind": "module", "group": "g-router", "note": "The handlers of one path, filtered by HTTP method.", "anchors": [{ "repo": "router", "path": "lib/route.js", "find": "Route.prototype.dispatch = function dispatch (req, res, done) {" }], "source": "code" },
+            { "id": "final", "label": "finalhandler", "kind": "module", "group": "g-final", "note": "404 or error response when nothing else answered.", "anchors": [{ "repo": "finalhandler", "path": "index.js", "find": "return function (err) {" }], "source": "code" }
+          ],
+          "links": [
+            { "id": "l-call", "from": "client", "to": "app", "label": "app(req, res)", "kind": "call", "anchor": { "repo": "express", "path": "lib/express.js", "find": "app.handle(req, res, next);" }, "source": "code" },
+            { "id": "l-handle", "from": "app", "to": "router", "label": "router.handle(req, res, done)", "kind": "call", "highlight": true, "anchor": { "repo": "express", "path": "lib/application.js", "find": "this.router.handle(req, res, done);" }, "source": "code" },
+            { "id": "l-layer", "from": "router", "to": "layer", "label": "handleRequest / handleError", "kind": "call", "anchor": { "repo": "router", "path": "index.js", "find": "layer.handleError(layerError, req, res, next)" }, "source": "code" },
+            { "id": "l-route", "from": "layer", "to": "route", "label": "route.dispatch", "kind": "call", "anchor": { "repo": "router", "path": "index.js", "find": "route.dispatch(req, res, next)" }, "source": "code" },
+            { "id": "l-done", "from": "router", "to": "final", "label": "done(err)", "kind": "call", "anchor": { "repo": "router", "path": "index.js", "find": "setImmediate(done, layerError)" }, "source": "code" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "seq",
+      "type": "sequence",
+      "title": "GET /users/42 with a failing handler",
+      "subtitle": "app.use(logger); app.get('/users/:id', loadUser); app.use(onError) — loadUser throws.",
+      "participants": [
+        { "id": "http", "label": "HTTP server", "kind": "actor" },
+        { "id": "app", "label": "app", "kind": "service" },
+        { "id": "router", "label": "Router", "kind": "service" },
+        { "id": "layer", "label": "Layer", "kind": "service" },
+        { "id": "route", "label": "Route", "kind": "service" },
+        { "id": "final", "label": "finalhandler", "kind": "service" }
+      ],
+      "steps": [
+        { "id": "s1", "from": "http", "to": "app", "label": "app(req, res)", "text": "The app is the request listener; it forwards to app.handle.", "anchor": { "repo": "express", "path": "lib/express.js", "find": "app.handle(req, res, next);" }, "handler": { "repo": "express", "path": "lib/application.js", "find": "app.handle = function handle(req, res, callback) {" }, "source": "code" },
+        { "id": "s2", "from": "app", "to": "router", "label": "router.handle(req, res, done)", "text": "With no outer callback, done is a fresh finalhandler for this request.", "anchor": { "repo": "express", "path": "lib/application.js", "find": "this.router.handle(req, res, done);" }, "handler": { "repo": "router", "path": "index.js", "find": "Router.prototype.handle = function handle (req, res, callback) {" }, "source": "code" },
+        { "id": "s3", "from": "router", "to": "layer", "label": "logger: handleRequest", "text": "The '/' middleware matches every path; logger runs and calls next().", "anchor": { "repo": "router", "path": "index.js", "find": "layer.handleRequest(req, res, next)", "nth": 2 }, "handler": { "repo": "router", "path": "lib/layer.js", "find": "const ret = fn(req, res, next)" }, "source": "code" },
+        { "id": "s4", "from": "router", "to": "layer", "label": "/users/:id: handleRequest", "text": "The route layer matches exactly and handles GET, so the router calls it.", "anchor": { "repo": "router", "path": "index.js", "find": "layer.handleRequest(req, res, next)", "nth": 1 }, "source": "code" },
+        { "id": "s5", "from": "layer", "to": "route", "label": "route.dispatch", "text": "The route walks its own stack, keeping only handlers for GET.", "anchor": { "repo": "router", "path": "index.js", "find": "route.dispatch(req, res, next)" }, "handler": { "repo": "router", "path": "lib/route.js", "find": "match = !layer.method || layer.method === method" }, "source": "code" },
+        { "id": "s6", "from": "route", "to": "router", "label": "next(err)", "kind": "error", "text": "loadUser throws; the layer's try/catch turns it into next(err), which leaves the route.", "anchor": { "repo": "router", "path": "lib/layer.js", "find": "next(err)", "nth": 2 }, "handler": { "repo": "router", "path": "lib/route.js", "find": "return done(err)", "nth": 2 }, "source": "code" },
+        { "id": "s7", "from": "router", "to": "layer", "label": "onError: handleError", "text": "With an error pending, route layers are skipped and only four-argument middleware is called.", "anchor": { "repo": "router", "path": "index.js", "find": "layer.handleError(layerError, req, res, next)" }, "handler": { "repo": "router", "path": "lib/layer.js", "find": "const ret = fn(error, req, res, next)" }, "source": "code" },
+        { "id": "s8", "from": "router", "to": "final", "label": "done(err)", "kind": "error", "text": "Had onError called next(err) too, the stack would run out and finalhandler would answer 500.", "anchor": { "repo": "router", "path": "index.js", "find": "setImmediate(done, layerError)" }, "handler": { "repo": "finalhandler", "path": "index.js", "find": "status = getErrorStatusCode(err)" }, "source": "code" }
+      ]
+    },
+    {
+      "id": "path",
+      "type": "path-tracer",
+      "title": "Step by step, and how each step can fail",
+      "steps": [
+        { "id": "p-app", "layer": "express", "node": "app.handle", "text": "Picks the final handler, sets X-Powered-By, swaps req/res prototypes to the app's, and calls the router.", "anchor": { "repo": "express", "path": "lib/application.js", "find": "app.handle = function handle(req, res, callback) {", "findEnd": "this.router.handle(req, res, done);" }, "source": "code" },
+        { "id": "p-next", "layer": "router", "node": "next()", "text": "Restores req.url changed by the previous prefix, then looks for the next layer that matches the path.", "anchor": { "repo": "router", "path": "index.js", "find": "function next (err) {" }, "source": "code",
+          "failures": [
+            { "id": "pf-nomatch", "code": "404", "text": "The stack runs out with no error pending: done() with no error, finalhandler answers 'Cannot GET /path'.", "anchor": { "repo": "router", "path": "index.js", "find": "setImmediate(done, layerError)" }, "source": "code" },
+            { "id": "pf-badpath", "code": "done(err)", "text": "A layer whose path pattern throws while matching (a malformed URI escape) makes the error pending.", "anchor": { "repo": "router", "path": "index.js", "find": "layerError = layerError || match" }, "source": "code" }
+          ] },
+        { "id": "p-trim", "layer": "router", "node": "trimPrefix", "text": "For a middleware mounted at /api, strips /api from req.url and sets req.baseUrl before calling it.", "anchor": { "repo": "router", "path": "index.js", "find": "function trimPrefix (layer, layerError, layerPath, path) {" }, "source": "code" },
+        { "id": "p-call", "layer": "router", "node": "Layer.handleRequest", "text": "Calls fn(req, res, next) inside try/catch and watches a returned promise.", "anchor": { "repo": "router", "path": "lib/layer.js", "find": "Layer.prototype.handleRequest = function handleRequest (req, res, next) {" }, "source": "code",
+          "failures": [
+            { "id": "pf-throw", "code": "next(err)", "text": "A synchronous throw is caught and passed on as the pending error.", "anchor": { "repo": "router", "path": "lib/layer.js", "find": "next(err)", "nth": 2 }, "source": "code" },
+            { "id": "pf-reject", "code": "next(err)", "text": "A rejected promise is passed on; a rejection without a value becomes Error('Rejected promise').", "anchor": { "repo": "router", "path": "lib/layer.js", "find": "next(error || new Error('Rejected promise'))", "nth": 2 }, "source": "code" }
+          ] },
+        { "id": "p-route", "layer": "router", "node": "Route.dispatch", "text": "Runs the handlers of the matched path for this method in order; next('route') leaves it early.", "anchor": { "repo": "router", "path": "lib/route.js", "find": "Route.prototype.dispatch = function dispatch (req, res, done) {" }, "source": "code" },
+        { "id": "p-error", "layer": "router", "node": "Layer.handleError", "text": "With an error pending, the router calls only layers whose function takes four arguments.", "anchor": { "repo": "router", "path": "lib/layer.js", "find": "Layer.prototype.handleError = function handleError (error, req, res, next) {" }, "source": "code" },
+        { "id": "p-final", "layer": "finalhandler", "node": "finalhandler(err)", "text": "Picks the status (err.status, err.statusCode, res.statusCode or 500), the message (stack outside production) and writes an HTML response.", "anchor": { "repo": "finalhandler", "path": "index.js", "find": "return function (err) {" }, "source": "code",
+          "failures": [
+            { "id": "pf-sent", "code": "socket destroyed", "text": "Headers already sent: finalhandler cannot answer and destroys the socket.", "anchor": { "repo": "finalhandler", "path": "index.js", "find": "req.socket.destroy()" }, "source": "code" }
+          ] }
+      ]
+    },
+    {
+      "id": "rules",
+      "type": "decision-table",
+      "title": "Which layer gets called",
+      "subtitle": "The router's choice for each layer in the stack, by its kind, whether an error is pending and the handler's arity.",
+      "conditions": [
+        { "id": "kind", "label": "Layer" },
+        { "id": "err", "label": "Error pending" },
+        { "id": "arity", "label": "fn.length" }
+      ],
+      "outcomeLabel": "The router",
+      "rows": [
+        { "id": "r-nomatch", "when": { "kind": "path does not match", "err": "*", "arity": "*" }, "outcome": "skips it", "literal": "if (match !== true) {", "anchor": { "repo": "router", "path": "index.js", "find": "if (match !== true) {", "nth": 1 }, "source": "code" },
+        { "id": "r-route-err", "when": { "kind": "route", "err": "yes", "arity": "*" }, "outcome": "skips it: routes never see errors", "literal": "if (layerError) {", "anchor": { "repo": "router", "path": "index.js", "find": "if (layerError) {", "nth": 1 }, "source": "code" },
+        { "id": "r-route-method", "when": { "kind": "route without this method", "err": "no", "arity": "*" }, "outcome": "skips it (HEAD falls back to GET)", "literal": "if (!hasMethod && method !== 'HEAD') {", "anchor": { "repo": "router", "path": "index.js", "find": "if (!hasMethod && method !== 'HEAD') {" }, "source": "code" },
+        { "id": "r-mw-ok", "when": { "kind": "middleware", "err": "no", "arity": "≤ 3" }, "outcome": "calls fn(req, res, next)", "literal": "if (fn.length > 3) {", "anchor": { "repo": "router", "path": "lib/layer.js", "find": "if (fn.length > 3) {" }, "source": "code" },
+        { "id": "r-mw-4", "when": { "kind": "middleware", "err": "no", "arity": "4" }, "outcome": "skips it: an error handler with no error", "literal": "if (fn.length > 3) {", "anchor": { "repo": "router", "path": "lib/layer.js", "find": "if (fn.length > 3) {" }, "source": "code" },
+        { "id": "r-err-4", "when": { "kind": "middleware", "err": "yes", "arity": "4" }, "outcome": "calls fn(err, req, res, next)", "literal": "if (fn.length !== 4) {", "anchor": { "repo": "router", "path": "lib/layer.js", "find": "if (fn.length !== 4) {" }, "source": "code" },
+        { "id": "r-err-3", "when": { "kind": "middleware", "err": "yes", "arity": "≠ 4" }, "outcome": "skips it, error stays pending", "literal": "if (fn.length !== 4) {", "anchor": { "repo": "router", "path": "lib/layer.js", "find": "if (fn.length !== 4) {" }, "source": "code" }
+      ]
+    },
+    {
+      "id": "fail",
+      "type": "failure-modes",
+      "title": "When something goes wrong",
+      "modes": [
+        { "id": "m-404", "situation": "No layer answers the request", "behavior": "The router reaches the end of the stack with no error and calls done().", "visible": "404 with an HTML body 'Cannot GET /path'.", "anchor": { "repo": "finalhandler", "path": "index.js", "find": "status = 404" }, "source": "code" },
+        { "id": "m-throw", "situation": "A handler throws or its promise rejects", "behavior": "The layer catches it and calls next(err); the rest of the stack runs in error mode.", "visible": "Whatever the first four-argument handler sends; without one, finalhandler's response.", "anchor": { "repo": "router", "path": "lib/layer.js", "find": "} catch (err) {", "nth": 2 }, "source": "code" },
+        { "id": "m-status", "situation": "The error carries status or statusCode between 400 and 599", "behavior": "finalhandler uses it, and copies err.headers onto the response.", "visible": "That status, e.g. 403, with the error's headers.", "anchor": { "repo": "finalhandler", "path": "index.js", "find": "if (typeof err.status === 'number' && err.status >= 400 && err.status < 600) {" }, "source": "code" },
+        { "id": "m-500", "situation": "The error has no usable status", "behavior": "finalhandler falls back to res.statusCode if it is an error code, otherwise 500.", "visible": "500 Internal Server Error.", "anchor": { "repo": "finalhandler", "path": "index.js", "find": "status = 500" }, "source": "code" },
+        { "id": "m-prod", "situation": "An unhandled error in production (NODE_ENV=production)", "behavior": "The stack trace is left out of the body; the error is still logged by the app's onerror.", "visible": "Only the status message, e.g. 'Internal Server Error'.", "anchor": { "repo": "finalhandler", "path": "index.js", "find": "if (env !== 'production') {" }, "source": "code" },
+        { "id": "m-sent", "situation": "An error after the response has started", "behavior": "finalhandler cannot change the status any more and destroys the socket.", "visible": "The client sees a cut-off response.", "anchor": { "repo": "finalhandler", "path": "index.js", "find": "req.socket.destroy()" }, "source": "code" }
+      ]
+    },
+    {
+      "id": "tests",
+      "type": "test-coverage",
+      "title": "Tests that pin this down",
+      "behaviors": [
+        { "id": "t-order", "behavior": "Middleware added with app.use runs for every request.", "tests": [{ "name": "should invoke middleware for all requests", "anchor": { "repo": "express", "path": "test/app.use.js", "find": "it('should invoke middleware for all requests', function (done) {" } }], "source": "test" },
+        { "id": "t-strip", "behavior": "A middleware mounted at a path sees req.url without that prefix.", "tests": [{ "name": "should strip path from req.url", "anchor": { "repo": "express", "path": "test/app.use.js", "find": "it('should strip path from req.url', function (done) {" } }], "source": "test" },
+        { "id": "t-err-only", "behavior": "An error-handling callback is called only when an error is propagated.", "tests": [{ "name": "should only call an error handling routing callback when an error is propagated", "anchor": { "repo": "express", "path": "test/app.routes.error.js", "find": "it('should only call an error handling routing callback when an error is propagated', function(done){" } }], "source": "test" },
+        { "id": "t-reject", "behavior": "A rejected promise from a handler reaches the error handlers.", "tests": [{ "name": "should pass rejected promise value", "anchor": { "repo": "router", "path": "test/router.js", "find": "it('should pass rejected promise value', function (done) {", "nth": 1 } }], "source": "test" },
+        { "id": "t-404", "behavior": "No error at the end of the stack answers 404.", "tests": [{ "name": "should 404 on no error", "anchor": { "repo": "finalhandler", "path": "test/test.js", "find": "it('should 404 on no error', function (done) {" } }], "source": "test" },
+        { "id": "t-status", "behavior": "err.status wins over err.statusCode.", "tests": [{ "name": "should use err.status over err.statusCode", "anchor": { "repo": "finalhandler", "path": "test/test.js", "find": "it('should use err.status over err.statusCode', function (done) {" } }], "source": "test" }
+      ]
+    },
+    {
+      "id": "questions",
+      "type": "open-questions",
+      "title": "What the code leaves open",
+      "items": [
+        { "id": "q-sync", "text": "The router yields with setImmediate after 100 synchronous next() calls; the code does not say whether that limit was tuned or arbitrary.", "anchor": { "repo": "router", "path": "index.js", "find": "if (++sync > 100) {" } }
+      ]
+    },
+    {
+      "id": "change",
+      "type": "change-points",
+      "title": "If you change this",
+      "points": [
+        { "id": "c-start", "kind": "start", "title": "Start in the router", "text": "Almost all of the request flow lives in Router.prototype.handle and its next(); Express only wraps it.", "anchors": [{ "repo": "router", "path": "index.js", "find": "Router.prototype.handle = function handle (req, res, callback) {" }], "source": "code" },
+        { "id": "c-together", "kind": "together", "title": "Layer and Route move together", "text": "The calling convention (arity checks, promise handling) is repeated in Layer.handleRequest and handleError and relied on by Route.dispatch.", "anchors": [{ "repo": "router", "path": "lib/layer.js", "find": "Layer.prototype.handleRequest = function handleRequest (req, res, next) {" }, { "repo": "router", "path": "lib/route.js", "find": "layer.handleError(err, req, res, next)" }], "source": "inferred" },
+        { "id": "c-danger", "kind": "danger", "title": "The arity check is public API", "text": "Every app's error handlers are found by fn.length === 4; changing it changes which functions run on errors.", "anchors": [{ "repo": "router", "path": "lib/layer.js", "find": "if (fn.length !== 4) {" }], "source": "inferred" },
+        { "id": "c-run", "kind": "run", "title": "Run the router tests", "text": "The router's own suite covers next('route'), next('router') and promise handling.", "commands": ["npm test"], "source": "inferred" }
+      ]
+    }
+  ],
+  "route": [
+    { "block": "brief", "minutes": 1, "why": "The whole answer in five facts.", "modes": ["short", "full"] },
+    { "block": "seq", "focus": "s6", "minutes": 2, "why": "One request, from the server to the error handler.", "modes": ["short", "full"] },
+    { "block": "map", "minutes": 1, "why": "Which package does what.", "modes": ["full"] },
+    { "block": "path", "minutes": 2, "why": "Each step with the ways it fails.", "modes": ["full"] },
+    { "block": "rules", "focus": "r-err-4", "minutes": 1.5, "why": "Why an error handler needs four arguments.", "modes": ["short", "full"] },
+    { "block": "fail", "minutes": 1.5, "why": "What the client sees when things go wrong.", "modes": ["full"] },
+    { "block": "tests", "minutes": 1, "why": "Where the behaviour is pinned down.", "modes": ["full"] },
+    { "block": "change", "minutes": 1, "why": "Where to start a change.", "modes": ["full"] }
+  ],
+  "openQuestions": [
+    "Mounting a sub-app re-points req/res prototypes on the way back (mounted_app); whether that is safe for handlers that keep a reference to req across an await is not settled by the code."
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "title": "open-questions",
+  "description": "What the code did not confirm, said explicitly. Shows the page's `openQuestions` and this block's own `items` (which may carry an anchor). Not rendered when both are empty.",
+  "type": "object",
+  "required": [
+    "id",
+    "type"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "type": {
+      "const": "open-questions"
+    },
+    "title": {
+      "type": "string",
+      "description": "Heading of the block (h2)."
+    },
+    "subtitle": {
+      "type": "string",
+      "description": "One line under the heading."
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "text"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Part id, unique in the block; a route step can focus it."
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1
+          },
+          "anchor": {
+            "$ref": "verstat:page#/$defs/anchor"
+          }
+        }
+      }
+    }
+  }
+}

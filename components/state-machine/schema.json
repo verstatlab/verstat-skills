@@ -1,0 +1,152 @@
+{
+  "title": "state-machine",
+  "description": "The life cycle of one entity as states and transitions, laid out as a diagram. States with no way in from an initial state are flagged “unreachable”, non-final states with no way out “dead end”. Each transition with an anchor is content-checked: the anchored line must contain the name of the target state (`to`), otherwise the transition is shown as inferred. On explain-pr pages mark parts with `change` (and `before` on changed transitions) to get Before / After / Diff. Not rendered when `states` is empty.",
+  "type": "object",
+  "required": [
+    "id",
+    "type",
+    "states",
+    "transitions"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "type": {
+      "const": "state-machine"
+    },
+    "title": {
+      "type": "string",
+      "description": "Heading of the block (h2)."
+    },
+    "subtitle": {
+      "type": "string",
+      "description": "One line under the heading."
+    },
+    "states": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The state as the code names it (`paid`); transitions refer to it, the content check looks for it. Part id."
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Human name of the state; defaults to the id."
+          },
+          "initial": {
+            "type": "boolean",
+            "description": "The entity starts here. Mark at least one state initial, or reachability is not checked."
+          },
+          "final": {
+            "type": "boolean",
+            "description": "The life cycle may end here; a final state is never a dead end."
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "description": "One line about the state, shown on hover."
+          },
+          "anchor": {
+            "$ref": "verstat:page#/$defs/anchor",
+            "description": "Where the state is declared."
+          },
+          "source": {
+            "$ref": "verstat:page#/$defs/source"
+          },
+          "change": {
+            "$ref": "verstat:page#/$defs/change"
+          }
+        }
+      }
+    },
+    "transitions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "from",
+          "to"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Part id, unique in the block; a route step can focus it."
+          },
+          "from": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The `id` of the source state."
+          },
+          "to": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The `id` of the target state; the anchored line must contain it."
+          },
+          "trigger": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The event or call that fires the transition (`refund`)."
+          },
+          "condition": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The guard that must hold, in a few words (`within 14 days of delivery`)."
+          },
+          "anchor": {
+            "$ref": "verstat:page#/$defs/anchor",
+            "x-anchor-contains": "to",
+            "description": "The line that performs the transition and names the target state. A line without the target state demotes the transition to inferred."
+          },
+          "source": {
+            "$ref": "verstat:page#/$defs/source"
+          },
+          "change": {
+            "$ref": "verstat:page#/$defs/change"
+          },
+          "before": {
+            "type": "object",
+            "description": "Old values of a `changed` transition.",
+            "required": [],
+            "additionalProperties": false,
+            "properties": {
+              "to": {
+                "type": "string",
+                "minLength": 1
+              },
+              "trigger": {
+                "type": "string",
+                "description": "Old trigger; \"\" when the transition had none."
+              },
+              "condition": {
+                "type": "string",
+                "description": "Old guard; \"\" when the transition had none (the PR added it)."
+              },
+              "anchor": {
+                "$ref": "verstat:page#/$defs/anchor",
+                "x-anchor-contains": "to",
+                "description": "Into the base repo (`<repo>@base`). Its line must contain `before.to`, so give `before.to` (even when unchanged) whenever you give `before.anchor`; otherwise the old transition is shown as inferred in Before. A changed `before.to` without `before.anchor` is shown as inferred, with no code chip."
+              },
+              "source": {
+                "$ref": "verstat:page#/$defs/source"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

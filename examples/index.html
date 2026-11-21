@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>verstat-skills examples</title>
+<link rel="icon" href="data:,">
+<meta name="description" content="Pages built by the explain and explain-pr skills of verstat-skills.">
+<style>
+:root {
+  color-scheme: light dark;
+  --bg: #f6f6f4;
+  --raised: #ffffff;
+  --ink: #1b1c1f;
+  --muted: #62656c;
+  --rule: #dfe0e3;
+  --accent: #ec3013;
+  --accent-ink: #b8230b;
+  --font: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1b1c1f;
+    --raised: #202125;
+    --ink: #d5d6da;
+    --muted: #8f939b;
+    --rule: #2f3237;
+    --accent: #e0614c;
+    --accent-ink: #e98a78;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 var(--font); }
+main { max-width: 860px; margin: 0 auto; padding: 40px 16px 64px; }
+.logo { display: flex; align-items: center; gap: 12px; font-weight: 800; }
+.logo svg { height: 17px; width: auto; }
+.logo rect { fill: var(--ink); }
+.logo .v { fill: var(--accent); }
+.logo span { font-size: 11px; letter-spacing: .08em; }
+h1 { font-size: clamp(26px, 5vw, 36px); line-height: 1.15; letter-spacing: -.02em; margin: 28px 0 12px; }
+.lead { color: var(--muted); margin: 0 0 32px; max-width: 64ch; }
+ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 16px; }
+li { background: var(--raised); border: 1px solid var(--rule); border-radius: 8px; padding: 20px; }
+.skill { font: 12px/1 var(--mono); color: var(--accent-ink); text-transform: lowercase; }
+h2 { font-size: 20px; margin: 8px 0 6px; letter-spacing: -.01em; }
+h2 a { color: inherit; text-decoration: none; }
+h2 a:hover, h2 a:focus-visible { color: var(--accent-ink); text-decoration: underline; }
+li p { margin: 0 0 10px; }
+.src { font-size: 14px; color: var(--muted); overflow-wrap: anywhere; }
+.src a { color: var(--muted); }
+footer { margin-top: 40px; font-size: 14px; color: var(--muted); }
+footer a { color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <div class="logo">
+    <svg viewBox="0 0 96 56" aria-hidden="true"><rect x="0" y="0" width="16" height="16"/><rect x="80" y="0" width="16" height="16"/><rect x="20" y="20" width="16" height="16"/><rect x="60" y="20" width="16" height="16"/><rect class="v" x="40" y="40" width="16" height="16"/></svg>
+    <span>VERSTAT LAB</span>
+  </div>
+  <h1>verstat-skills examples</h1>
+  <p class="lead">Pages built by the skills on real open-source code. Each page is one offline HTML file; every claim points at a line of code, checked by the validator at a pinned commit.</p>
+  <ul>
+    <li>
+      <div class="skill">explain</div>
+      <h2><a href="express-request-flow.html">How a request travels through Express 5</a></h2>
+      <p>From the HTTP server through <code>app.use</code> middleware, the router and its layers, to the error handler and the final 404 / 500 response.</p>
+      <div class="src">Code: <a href="https://github.com/expressjs/express/tree/v5.3.0">expressjs/express v5.3.0</a>, <a href="https://github.com/pillarjs/router/tree/v2.2.0">pillarjs/router v2.2.0</a>, <a href="https://github.com/pillarjs/finalhandler/tree/v2.1.0">pillarjs/finalhandler v2.1.0</a>, under the MIT licence (<a href="https://github.com/expressjs/express/blob/v5.3.0/LICENSE">express</a>, <a href="https://github.com/pillarjs/router/blob/v2.2.0/LICENSE">router</a>, <a href="https://github.com/pillarjs/finalhandler/blob/v2.1.0/LICENSE">finalhandler</a>)</div>
+    </li>
+    <li>
+      <div class="skill">explain-pr</div>
+      <h2><a href="vite-pr-20260.html">Vite PR #20260: import.meta.resolve in the module runner</a></h2>
+      <p>A merged pull request explained for its reviewer: claimed vs done, the commits, the code in layers with its tests, the code that only moved and the import noise set aside.</p>
+      <div class="src">Code: <a href="https://github.com/vitejs/vite/pull/20260">vitejs/vite#20260</a>, under the <a href="https://github.com/vitejs/vite/blob/2c32c8669c9088e66f36ddee93a51510cddd4706/LICENSE">MIT licence</a></div>
+    </li>
+    <li>
+      <div class="skill">explain-pr</div>
+      <h2><a href="showcase.html">Showcase: every block on one page</a></h2>
+      <p>A small made-up shop service (orders and delivery) and one change to it, written so that every block type the skills can draw appears at least once.</p>
+      <div class="src">Code: fictional, kept in the repository as patches</div>
+    </li>
+  </ul>
+  <footer>The example pages embed the source files they point at. <a href="https://github.com/verstatlab/verstat-skills">verstat-skills on GitHub</a></footer>
+</main>
+</body>
+</html>

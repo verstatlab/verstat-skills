@@ -1,0 +1,141 @@
+{
+  "title": "decision-table",
+  "description": "A rule as a table: one column per condition, one row per case, the outcome and the line that decides it. A row whose cell is missing shows an empty cell (“empty”), a row without an outcome “undefined”, and two rows that match the same case with different outcomes are flagged as contradicting each other. Each row with an anchor is content-checked: the anchored line must contain `literal`; a row with an anchor and no `literal`, or whose literal is not on the line, is shown as inferred. Not rendered when `rows` is empty.",
+  "type": "object",
+  "required": [
+    "id",
+    "type",
+    "conditions",
+    "rows"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "type": {
+      "const": "decision-table"
+    },
+    "title": {
+      "type": "string",
+      "description": "Heading of the block (h2)."
+    },
+    "subtitle": {
+      "type": "string",
+      "description": "One line under the heading."
+    },
+    "conditions": {
+      "type": "array",
+      "description": "Columns, in reading order.",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "label"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Key used in each row's `when`."
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Column heading."
+          }
+        }
+      }
+    },
+    "outcomeLabel": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Heading of the outcome column; defaults to “Outcome”."
+    },
+    "rows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "when"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Part id, unique in the block; a route step can focus it."
+          },
+          "when": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Condition id → the value in this row (`\"≤ 14\"`, `\"yes\"`). `\"*\"` means any value; leave a condition out for an empty cell."
+          },
+          "outcome": {
+            "type": "string",
+            "minLength": 1,
+            "description": "What the rule decides; leave it out when the code decides nothing for this case."
+          },
+          "literal": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The condition or threshold exactly as written in code (`days <= 14`); the anchored line must contain it."
+          },
+          "anchor": {
+            "$ref": "verstat:page#/$defs/anchor",
+            "x-anchor-contains": "literal",
+            "description": "The line that decides this row."
+          },
+          "source": {
+            "$ref": "verstat:page#/$defs/source"
+          },
+          "note": {
+            "type": "string",
+            "minLength": 1,
+            "description": "One line shown under the row."
+          },
+          "change": {
+            "$ref": "verstat:page#/$defs/change"
+          },
+          "before": {
+            "type": "object",
+            "description": "Old values of a `changed` row.",
+            "required": [],
+            "additionalProperties": false,
+            "properties": {
+              "when": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "description": "Only the cells that changed: condition id → old value; the other cells keep their current value."
+              },
+              "outcome": {
+                "type": "string",
+                "description": "Old outcome; \"\" when the code decided nothing for this case before."
+              },
+              "literal": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Old literal; the base anchor's line must contain it."
+              },
+              "anchor": {
+                "$ref": "verstat:page#/$defs/anchor",
+                "x-anchor-contains": "literal",
+                "description": "Into the base repo; checked against `before.literal`, or the old row is shown as inferred in Before. A changed `before.literal` without `before.anchor` is shown as inferred, with no code chip."
+              },
+              "source": {
+                "$ref": "verstat:page#/$defs/source"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

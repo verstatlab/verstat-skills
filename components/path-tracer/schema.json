@@ -1,0 +1,103 @@
+{
+  "title": "path-tracer",
+  "description": "One request traced through the layers of the system, step by step, with the ways each step can fail. Not rendered when `steps` is empty.",
+  "type": "object",
+  "required": [
+    "id",
+    "type",
+    "steps"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "type": {
+      "const": "path-tracer"
+    },
+    "title": {
+      "type": "string",
+      "description": "Heading of the block (h2)."
+    },
+    "subtitle": {
+      "type": "string",
+      "description": "One line under the heading."
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "layer",
+          "node"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Part id, unique in the block; a route step can focus it."
+          },
+          "layer": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The layer (`HTTP`, `service`, `gateway`, `DB`)."
+          },
+          "node": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The function or component, as code names it."
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "description": "What happens at this step."
+          },
+          "anchor": {
+            "$ref": "verstat:page#/$defs/anchor"
+          },
+          "source": {
+            "$ref": "verstat:page#/$defs/source"
+          },
+          "failures": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "code",
+                "text"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Part id, unique in the block; a route step can focus it."
+                },
+                "code": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Status or error code (`409`, `ServiceUnavailable`)."
+                },
+                "text": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "When it happens and what the caller gets."
+                },
+                "anchor": {
+                  "$ref": "verstat:page#/$defs/anchor"
+                },
+                "source": {
+                  "$ref": "verstat:page#/$defs/source"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

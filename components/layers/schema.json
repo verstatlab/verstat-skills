@@ -1,0 +1,51 @@
+{
+  "title": "layers",
+  "description": "The architectural layers of the code the question touches (controller / service / repository / worker …), top to bottom, with the files in each and the rule that keeps a layer apart. Not rendered when `layers` is empty.",
+  "type": "object",
+  "required": ["id", "type", "layers"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "type": { "const": "layers" },
+    "title": { "type": "string", "description": "Heading of the block (h2)." },
+    "subtitle": { "type": "string", "description": "One line under the heading." },
+    "layers": {
+      "type": "array",
+      "description": "Ordered from the top layer (the entry point) to the bottom one.",
+      "items": {
+        "type": "object",
+        "required": ["id", "role", "files"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "minLength": 1, "description": "Part id, unique in the block; a route step can focus the row." },
+          "role": { "type": "string", "minLength": 1, "description": "The layer's role: controller, service, repository, worker …" },
+          "package": { "type": "string", "minLength": 1, "description": "Folder or package the layer lives in, shown in mono under the role." },
+          "files": {
+            "type": "array",
+            "description": "Files of the layer, each drawn as a chip. Give each one an anchor: a file anchor (`{ repo, path }`) opens the whole file, a line or range anchor scrolls to it. A plain string, or an object without an anchor, is a grey label that opens nothing. The page embeds every anchored file whole: give a lock file, a generated file or a file that may hold secrets no anchor.",
+            "items": {
+              "anyOf": [
+                { "type": "string", "minLength": 1 },
+                {
+                  "type": "object",
+                  "required": ["path"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "path": { "type": "string", "minLength": 1 },
+                    "label": { "type": "string", "minLength": 1, "description": "Short name on the chip (`cli`, `store/fs`); the file name (and line) by default." },
+                    "anchor": { "$ref": "verstat:page#/$defs/anchor" }
+                  }
+                }
+              ]
+            }
+          },
+          "rule": { "type": "string", "minLength": 1, "description": "What keeps the layer apart, e.g. “only calls the layer below”." },
+          "ruleAnchor": { "$ref": "verstat:page#/$defs/anchor", "description": "Where the rule shows in code." },
+          "highlight": { "type": "boolean", "description": "The layer the question is about." },
+          "note": { "type": "string", "minLength": 1 },
+          "source": { "$ref": "verstat:page#/$defs/source" }
+        }
+      }
+    }
+  }
+}

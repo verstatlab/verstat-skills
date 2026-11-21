@@ -1,0 +1,84 @@
+{
+  "title": "field-lineage",
+  "description": "The path of one value: where it is born, how it is carried and transformed, where it is stored and who reads it. Stages in order. Not rendered when `stages` is empty.",
+  "type": "object",
+  "required": [
+    "id",
+    "type",
+    "field",
+    "stages"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "type": {
+      "const": "field-lineage"
+    },
+    "title": {
+      "type": "string",
+      "description": "Heading of the block (h2)."
+    },
+    "subtitle": {
+      "type": "string",
+      "description": "One line under the heading."
+    },
+    "field": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The value followed, as code names it (`invoices.total_cents`)."
+    },
+    "stages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "value",
+          "text"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Part id, unique in the block; a route step can focus it."
+          },
+          "kind": {
+            "enum": [
+              "born",
+              "carried",
+              "transformed",
+              "stored",
+              "read"
+            ],
+            "description": "born: where the value first appears; carried: passed on unchanged; transformed: computed or converted; stored: written to a store; read: consumed."
+          },
+          "value": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The value or expression at this stage, as code writes it."
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "description": "What happens here, in one sentence."
+          },
+          "hot": {
+            "type": "boolean",
+            "description": "The stage the question is about; drawn on the accent."
+          },
+          "anchor": {
+            "$ref": "verstat:page#/$defs/anchor"
+          },
+          "source": {
+            "$ref": "verstat:page#/$defs/source"
+          }
+        }
+      }
+    }
+  }
+}

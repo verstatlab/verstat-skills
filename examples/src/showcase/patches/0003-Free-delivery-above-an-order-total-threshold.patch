@@ -1,0 +1,112 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Verstat Lab <verstatlab@gmail.com>
+Date: Wed, 14 Jan 2026 10:00:00 +0000
+Subject: [PATCH 3/3] Free delivery above an order-total threshold
+
+---
+ README.md              |  5 +++--
+ config/default.json    |  1 +
+ config/production.json |  1 +
+ src/delivery.js        |  1 +
+ src/notify.js          |  4 ++++
+ test/orders.test.js    | 13 +++++++++++++
+ 6 files changed, 23 insertions(+), 2 deletions(-)
+
+diff --git a/README.md b/README.md
+index c62d14f..6487717 100644
+--- a/README.md
++++ b/README.md
+@@ -10,8 +10,9 @@ within `shipWithinDays`; both make it `refunded`.
+ 
+ ## Delivery
+ 
+-Delivery costs `deliveryBase` plus `deliveryPerKg` for every started kilogram, up to `maxDelivery`.
+-Amounts are in cents. `GET /customers/:id/refunds` lists a customer's refunds.
++Delivery is free for orders whose subtotal reaches `freeDeliveryFrom`. Below it, delivery costs
++`deliveryBase` plus `deliveryPerKg` for every started kilogram, up to `maxDelivery`, and the customer
++is mailed how much more would make it free. Amounts are in cents. `GET /customers/:id/refunds` lists a customer's refunds.
+ 
+ ## Configuration
+ 
+diff --git a/config/default.json b/config/default.json
+index ae34ed8..21afeb8 100644
+--- a/config/default.json
++++ b/config/default.json
+@@ -2,6 +2,7 @@
+   "deliveryBase": 490,
+   "deliveryPerKg": 150,
+   "maxDelivery": 2500,
++  "freeDeliveryFrom": 5000,
+   "shipWithinDays": 3,
+   "unshippedCheckMinutes": 60
+ }
+diff --git a/config/production.json b/config/production.json
+index 5c5337e..c1d0386 100644
+--- a/config/production.json
++++ b/config/production.json
+@@ -1,5 +1,6 @@
+ {
+   "deliveryBase": 590,
+   "maxDelivery": 3000,
++  "freeDeliveryFrom": 7500,
+   "unshippedCheckMinutes": 15
+ }
+diff --git a/src/delivery.js b/src/delivery.js
+index 95b668b..b323ba9 100644
+--- a/src/delivery.js
++++ b/src/delivery.js
+@@ -1,6 +1,7 @@
+ import { config } from './config.js';
+ 
+ export function deliveryCost(order) {
++  if (order.subtotal >= config.freeDeliveryFrom) return 0;
+   const kg = Math.ceil(order.weightKg);
+   const cost = config.deliveryBase + kg * config.deliveryPerKg;
+   return Math.min(cost, config.maxDelivery);
+diff --git a/src/notify.js b/src/notify.js
+index 4c37a8e..c33b558 100644
+--- a/src/notify.js
++++ b/src/notify.js
+@@ -1,3 +1,4 @@
++import { config } from './config.js';
+ import { db } from './db.js';
+ import { subscribe } from './events.js';
+ 
+@@ -8,6 +9,9 @@ function mail(customerId, subject) {
+   if (customer?.email) outbox.push({ to: customer.email, subject });
+ }
+ 
++subscribe('order.created', (order) => {
++  if (order.delivery > 0) mail(order.customerId, `Add ${config.freeDeliveryFrom - order.subtotal} more to order ${order.id} for free delivery`);
++});
+ subscribe('order.shipped', (order) => mail(order.customerId, `Order ${order.id} is on its way`));
+ subscribe('order.refunded', (order) => mail(order.customerId, `Order ${order.id} was cancelled`));
+ subscribe('refund.issued', (record) => mail(record.customerId, `A refund of ${record.amount} was issued`));
+diff --git a/test/orders.test.js b/test/orders.test.js
+index 7eca70e..4e546ca 100644
+--- a/test/orders.test.js
++++ b/test/orders.test.js
+@@ -2,6 +2,7 @@ import { test } from 'node:test';
+ import assert from 'node:assert/strict';
+ import { db } from '../src/db.js';
+ import { createOrder, pay, refundUnshipped, STATUS } from '../src/orders.js';
++import { outbox } from '../src/notify.js';
+ 
+ const DAY = 24 * 60 * 60 * 1000;
+ 
+@@ -25,3 +26,15 @@ test('a paid order not shipped in time is refunded', () => {
+   assert.equal(order.status, STATUS.refunded);
+   assert.equal(db.refunds.at(-1).amount, order.total);
+ });
++
++test('an order from freeDeliveryFrom ships free', () => {
++  const order = createOrder('c-1', [{ price: 2500, qty: 2, weightKg: 3 }], 0);
++  assert.equal(order.delivery, 0);
++  assert.equal(order.total, 5000);
++});
++
++test('below the threshold the customer is told how much more makes delivery free', () => {
++  const order = createOrder('c-1', [{ price: 4999, qty: 1, weightKg: 1 }], 0);
++  assert.equal(order.delivery, 490 + 150);
++  assert.equal(outbox.at(-1).subject, `Add 1 more to order ${order.id} for free delivery`);
++});

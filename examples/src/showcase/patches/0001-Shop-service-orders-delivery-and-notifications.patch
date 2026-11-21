@@ -1,0 +1,361 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Verstat Lab <verstatlab@gmail.com>
+Date: Mon, 5 Jan 2026 10:00:00 +0000
+Subject: [PATCH 1/3] Shop service: orders, delivery and notifications
+
+---
+ README.md              | 18 +++++++++++
+ config/default.json    |  7 +++++
+ config/production.json |  5 +++
+ package.json           |  9 ++++++
+ src/config.js          | 13 ++++++++
+ src/db.js              | 12 +++++++
+ src/events.js          | 10 ++++++
+ src/jobs/unshipped.js  |  6 ++++
+ src/notify.js          | 13 ++++++++
+ src/orders.js          | 71 ++++++++++++++++++++++++++++++++++++++++++
+ src/payments.js        | 14 +++++++++
+ src/server.js          | 44 ++++++++++++++++++++++++++
+ test/orders.test.js    | 27 ++++++++++++++++
+ 13 files changed, 249 insertions(+)
+ create mode 100644 README.md
+ create mode 100644 config/default.json
+ create mode 100644 config/production.json
+ create mode 100644 package.json
+ create mode 100644 src/config.js
+ create mode 100644 src/db.js
+ create mode 100644 src/events.js
+ create mode 100644 src/jobs/unshipped.js
+ create mode 100644 src/notify.js
+ create mode 100644 src/orders.js
+ create mode 100644 src/payments.js
+ create mode 100644 src/server.js
+ create mode 100644 test/orders.test.js
+
+diff --git a/README.md b/README.md
+new file mode 100644
+index 0000000..c62d14f
+--- /dev/null
++++ b/README.md
+@@ -0,0 +1,18 @@
++# shop
++
++A small online shop service: customers place orders, pay, and get them delivered.
++
++## Orders
++
++An order starts `created`. Paying it makes it `paid`; it is then `shipped` and finally `delivered`.
++A paid order can be cancelled before it ships, and an hourly job refunds paid orders not shipped
++within `shipWithinDays`; both make it `refunded`.
++
++## Delivery
++
++Delivery costs `deliveryBase` plus `deliveryPerKg` for every started kilogram, up to `maxDelivery`.
++Amounts are in cents. `GET /customers/:id/refunds` lists a customer's refunds.
++
++## Configuration
++
++`config/default.json` holds the defaults; `config/<APP_ENV>.json` overrides them per environment.
+diff --git a/config/default.json b/config/default.json
+new file mode 100644
+index 0000000..ae34ed8
+--- /dev/null
++++ b/config/default.json
+@@ -0,0 +1,7 @@
++{
++  "deliveryBase": 490,
++  "deliveryPerKg": 150,
++  "maxDelivery": 2500,
++  "shipWithinDays": 3,
++  "unshippedCheckMinutes": 60
++}
+diff --git a/config/production.json b/config/production.json
+new file mode 100644
+index 0000000..5c5337e
+--- /dev/null
++++ b/config/production.json
+@@ -0,0 +1,5 @@
++{
++  "deliveryBase": 590,
++  "maxDelivery": 3000,
++  "unshippedCheckMinutes": 15
++}
+diff --git a/package.json b/package.json
+new file mode 100644
+index 0000000..942e720
+--- /dev/null
++++ b/package.json
+@@ -0,0 +1,9 @@
++{
++  "name": "shop",
++  "private": true,
++  "type": "module",
++  "scripts": {
++    "start": "node src/server.js",
++    "test": "node --test test/"
++  }
++}
+diff --git a/src/config.js b/src/config.js
+new file mode 100644
+index 0000000..fd7bde6
+--- /dev/null
++++ b/src/config.js
+@@ -0,0 +1,13 @@
++import { readFileSync } from 'node:fs';
++
++const env = process.env.APP_ENV || 'development';
++
++function load(name) {
++  try {
++    return JSON.parse(readFileSync(new URL(`../config/${name}.json`, import.meta.url), 'utf8'));
++  } catch {
++    return {};
++  }
++}
++
++export const config = { ...load('default'), ...load(env) };
+diff --git a/src/db.js b/src/db.js
+new file mode 100644
+index 0000000..495d546
+--- /dev/null
++++ b/src/db.js
+@@ -0,0 +1,12 @@
++// An in-memory store; a real deployment swaps it for a database with the same tables.
++export const db = {
++  customers: new Map(),
++  orders: new Map(),
++  refunds: [],
++};
++
++let nextId = 1;
++
++export function newId(prefix) {
++  return `${prefix}-${nextId++}`;
++}
+diff --git a/src/events.js b/src/events.js
+new file mode 100644
+index 0000000..1a1552f
+--- /dev/null
++++ b/src/events.js
+@@ -0,0 +1,10 @@
++const handlers = new Map();
++
++export function subscribe(topic, handler) {
++  if (!handlers.has(topic)) handlers.set(topic, []);
++  handlers.get(topic).push(handler);
++}
++
++export function publish(topic, payload) {
++  for (const handler of handlers.get(topic) ?? []) handler(payload);
++}
+diff --git a/src/jobs/unshipped.js b/src/jobs/unshipped.js
+new file mode 100644
+index 0000000..2046bcc
+--- /dev/null
++++ b/src/jobs/unshipped.js
+@@ -0,0 +1,6 @@
++import { config } from '../config.js';
++import { refundUnshipped } from '../orders.js';
++
++export function startUnshippedJob() {
++  return setInterval(() => refundUnshipped(), config.unshippedCheckMinutes * 60 * 1000);
++}
+diff --git a/src/notify.js b/src/notify.js
+new file mode 100644
+index 0000000..4c37a8e
+--- /dev/null
++++ b/src/notify.js
+@@ -0,0 +1,13 @@
++import { db } from './db.js';
++import { subscribe } from './events.js';
++
++export const outbox = [];
++
++function mail(customerId, subject) {
++  const customer = db.customers.get(customerId);
++  if (customer?.email) outbox.push({ to: customer.email, subject });
++}
++
++subscribe('order.shipped', (order) => mail(order.customerId, `Order ${order.id} is on its way`));
++subscribe('order.refunded', (order) => mail(order.customerId, `Order ${order.id} was cancelled`));
++subscribe('refund.issued', (record) => mail(record.customerId, `A refund of ${record.amount} was issued`));
+diff --git a/src/orders.js b/src/orders.js
+new file mode 100644
+index 0000000..7fe010a
+--- /dev/null
++++ b/src/orders.js
+@@ -0,0 +1,71 @@
++import { db, newId } from './db.js';
++import { publish } from './events.js';
++import { config } from './config.js';
++import { refund } from './payments.js';
++
++const DAY = 24 * 60 * 60 * 1000;
++
++export const STATUS = {
++  created: 'created',
++  paid: 'paid',
++  shipped: 'shipped',
++  delivered: 'delivered',
++  refunded: 'refunded',
++};
++
++export function createOrder(customerId, items, now = Date.now()) {
++  if (!db.customers.has(customerId)) throw new Error('unknown customer');
++  if (!items?.length) throw new Error('empty order');
++  const subtotal = items.reduce((sum, item) => sum + item.price * item.qty, 0);
++  const weightKg = items.reduce((sum, item) => sum + item.weightKg * item.qty, 0);
++  const order = { id: newId('order'), customerId, items, subtotal, weightKg, status: STATUS.created, createdAt: now };
++  order.delivery = deliveryCost(order);
++  order.total = order.subtotal + order.delivery;
++  db.orders.set(order.id, order);
++  publish('order.created', order);
++  return order;
++}
++
++export function deliveryCost(order) {
++  const kg = Math.ceil(order.weightKg);
++  const cost = config.deliveryBase + kg * config.deliveryPerKg;
++  return Math.min(cost, config.maxDelivery);
++}
++
++function advance(orderId, from, to, now) {
++  const order = db.orders.get(orderId);
++  if (!order) throw new Error('unknown order');
++  if (order.status !== from) throw new Error(`order is ${order.status}, not ${from}`);
++  order.status = to;
++  order[`${to}At`] = now;
++  publish(`order.${to}`, order);
++  return order;
++}
++
++export function pay(orderId, now = Date.now()) {
++  return advance(orderId, STATUS.created, STATUS.paid, now);
++}
++
++export function ship(orderId, now = Date.now()) {
++  return advance(orderId, STATUS.paid, STATUS.shipped, now);
++}
++
++export function deliver(orderId, now = Date.now()) {
++  return advance(orderId, STATUS.shipped, STATUS.delivered, now);
++}
++
++export function cancel(orderId, now = Date.now()) {
++  const order = advance(orderId, STATUS.paid, STATUS.refunded, now);
++  refund(order, order.total);
++  return order;
++}
++
++export function refundUnshipped(now = Date.now()) {
++  const changed = [];
++  for (const order of db.orders.values()) {
++    if (order.status === STATUS.paid && now > order.paidAt + config.shipWithinDays * DAY) {
++      changed.push(cancel(order.id, now));
++    }
++  }
++  return changed;
++}
+diff --git a/src/payments.js b/src/payments.js
+new file mode 100644
+index 0000000..b2c7465
+--- /dev/null
++++ b/src/payments.js
+@@ -0,0 +1,14 @@
++import { db } from './db.js';
++import { publish } from './events.js';
++
++export function refund(order, amount) {
++  if (amount <= 0) return null;
++  const record = { orderId: order.id, customerId: order.customerId, amount };
++  db.refunds.push(record);
++  publish('refund.issued', record);
++  return record;
++}
++
++export function refundsOf(customerId) {
++  return db.refunds.filter((record) => record.customerId === customerId);
++}
+diff --git a/src/server.js b/src/server.js
+new file mode 100644
+index 0000000..307cc17
+--- /dev/null
++++ b/src/server.js
+@@ -0,0 +1,44 @@
++import { createServer } from 'node:http';
++import { cancel, createOrder, deliver, pay, ship } from './orders.js';
++import { refundsOf } from './payments.js';
++import { startUnshippedJob } from './jobs/unshipped.js';
++import './notify.js';
++
++const actions = { pay, ship, deliver, cancel };
++
++function send(res, status, body) {
++  res.writeHead(status, { 'content-type': 'application/json' });
++  res.end(JSON.stringify(body));
++}
++
++async function readJson(req) {
++  let raw = '';
++  for await (const chunk of req) raw += chunk;
++  return raw ? JSON.parse(raw) : {};
++}
++
++export const server = createServer(async (req, res) => {
++  try {
++    const url = new URL(req.url, 'http://localhost');
++    if (req.method === 'POST' && url.pathname === '/orders') {
++      const { customerId, items } = await readJson(req);
++      return send(res, 201, createOrder(customerId, items));
++    }
++    const action = url.pathname.match(/^\/orders\/([\w-]+)\/(pay|ship|deliver|cancel)$/);
++    if (req.method === 'POST' && action) {
++      return send(res, 200, actions[action[2]](action[1]));
++    }
++    const refunds = url.pathname.match(/^\/customers\/([\w-]+)\/refunds$/);
++    if (req.method === 'GET' && refunds) {
++      return send(res, 200, refundsOf(refunds[1]));
++    }
++    return send(res, 404, { error: 'not found' });
++  } catch (err) {
++    return send(res, 409, { error: err.message });
++  }
++});
++
++if (process.argv[1] === new URL(import.meta.url).pathname) {
++  startUnshippedJob();
++  server.listen(process.env.PORT || 3000);
++}
+diff --git a/test/orders.test.js b/test/orders.test.js
+new file mode 100644
+index 0000000..7eca70e
+--- /dev/null
++++ b/test/orders.test.js
+@@ -0,0 +1,27 @@
++import { test } from 'node:test';
++import assert from 'node:assert/strict';
++import { db } from '../src/db.js';
++import { createOrder, pay, refundUnshipped, STATUS } from '../src/orders.js';
++
++const DAY = 24 * 60 * 60 * 1000;
++
++db.customers.set('c-1', { id: 'c-1', email: 'buyer@example.com' });
++
++test('delivery is charged per started kilogram', () => {
++  const order = createOrder('c-1', [{ price: 1200, qty: 2, weightKg: 1.1 }], 0);
++  assert.equal(order.delivery, 490 + 3 * 150);
++  assert.equal(order.total, 2400 + 940);
++});
++
++test('delivery is capped at maxDelivery', () => {
++  const order = createOrder('c-1', [{ price: 900, qty: 1, weightKg: 40 }], 0);
++  assert.equal(order.delivery, 2500);
++});
++
++test('a paid order not shipped in time is refunded', () => {
++  const order = createOrder('c-1', [{ price: 1500, qty: 1, weightKg: 0.5 }], 0);
++  pay(order.id, 0);
++  refundUnshipped(4 * DAY);
++  assert.equal(order.status, STATUS.refunded);
++  assert.equal(db.refunds.at(-1).amount, order.total);
++});

@@ -1,0 +1,70 @@
+{
+  "title": "failure-modes",
+  "description": "Situation → what the code does → what the client sees, each with its place in code. Not rendered when `modes` is empty.",
+  "type": "object",
+  "required": [
+    "id",
+    "type",
+    "modes"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "type": {
+      "const": "failure-modes"
+    },
+    "title": {
+      "type": "string",
+      "description": "Heading of the block (h2)."
+    },
+    "subtitle": {
+      "type": "string",
+      "description": "One line under the heading."
+    },
+    "modes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "situation",
+          "behavior",
+          "visible"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Part id, unique in the block; a route step can focus it."
+          },
+          "situation": {
+            "type": "string",
+            "minLength": 1,
+            "description": "What goes wrong (`the gateway times out three times`)."
+          },
+          "behavior": {
+            "type": "string",
+            "minLength": 1,
+            "description": "What the code does about it."
+          },
+          "visible": {
+            "type": "string",
+            "minLength": 1,
+            "description": "What the caller or user sees: status, message, state."
+          },
+          "anchor": {
+            "$ref": "verstat:page#/$defs/anchor",
+            "description": "Where the code handles it."
+          },
+          "source": {
+            "$ref": "verstat:page#/$defs/source"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,77 @@
+{
+  "title": "risks",
+  "description": "Risks as a list sorted by severity (high first), each with its consequence, where it is described and where it is in code; the first six are shown, the rest behind “show more”. Not rendered when `risks` is empty.",
+  "type": "object",
+  "required": [
+    "id",
+    "type",
+    "risks"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "type": {
+      "const": "risks"
+    },
+    "title": {
+      "type": "string",
+      "description": "Heading of the block (h2)."
+    },
+    "subtitle": {
+      "type": "string",
+      "description": "One line under the heading."
+    },
+    "risks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "severity",
+          "title",
+          "consequence"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Part id, unique in the block; a route step can focus it."
+          },
+          "severity": {
+            "enum": [
+              "high",
+              "medium",
+              "low"
+            ],
+            "description": "high: breaks data or users when it happens; medium: degrades or misleads; low: an edge case or an annoyance."
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The risk, in a few words."
+          },
+          "consequence": {
+            "type": "string",
+            "minLength": 1,
+            "description": "What happens when it materialises."
+          },
+          "reference": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Where it is described: a README section, an ADR, an issue."
+          },
+          "anchor": {
+            "$ref": "verstat:page#/$defs/anchor"
+          },
+          "source": {
+            "$ref": "verstat:page#/$defs/source"
+          }
+        }
+      }
+    }
+  }
+}

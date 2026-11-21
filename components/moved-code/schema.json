@@ -1,0 +1,122 @@
+{
+  "title": "moved-code",
+  "description": "explain-pr: code moved without changes, so the reader does not read it twice. Collapsed rows. Data is `auto`: paste the `moved` items of `verstat facts diff`. Not rendered when `items` is empty.",
+  "type": "object",
+  "required": [
+    "id",
+    "type",
+    "items"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "type": {
+      "const": "moved-code"
+    },
+    "title": {
+      "type": "string",
+      "description": "Heading of the block (h2)."
+    },
+    "subtitle": {
+      "type": "string",
+      "description": "One line under the heading."
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "from",
+          "to",
+          "lines",
+          "body"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Part id, unique in the block; a route step can focus it."
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "from": {
+            "type": "object",
+            "required": [
+              "path"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "repo": {
+                "type": "string",
+                "minLength": 1
+              },
+              "path": {
+                "type": "string",
+                "minLength": 1
+              },
+              "start": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "end": {
+                "type": "integer",
+                "minimum": 1
+              }
+            },
+            "description": "Where the code was, at base (start/end are old line numbers)."
+          },
+          "to": {
+            "type": "object",
+            "required": [
+              "path"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "repo": {
+                "type": "string",
+                "minLength": 1
+              },
+              "path": {
+                "type": "string",
+                "minLength": 1
+              },
+              "start": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "end": {
+                "type": "integer",
+                "minimum": 1
+              }
+            },
+            "description": "Where it is now, at head (new line numbers)."
+          },
+          "lines": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "How many lines moved."
+          },
+          "body": {
+            "type": "string",
+            "description": "The moved code as it is at head."
+          },
+          "note": {
+            "type": "string",
+            "minLength": 1
+          },
+          "anchor": {
+            "$ref": "verstat:page#/$defs/anchor"
+          }
+        }
+      }
+    }
+  }
+}

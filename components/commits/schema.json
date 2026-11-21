@@ -1,0 +1,96 @@
+{
+  "title": "commits",
+  "description": "explain-pr: the branch's commits with the intent of each, drawn as a graph like `git log --graph`, newest on top. List them oldest first, as `verstat facts diff` prints them. Clicking a commit emits `commits:select` on the page bus; the fragments of the `changes` blocks (and the doc fragments) that the commit does not touch are dimmed. Not rendered when `commits` is empty.",
+  "type": "object",
+  "required": [
+    "id",
+    "type",
+    "commits"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "type": {
+      "const": "commits"
+    },
+    "title": {
+      "type": "string",
+      "description": "Heading of the block (h2)."
+    },
+    "subtitle": {
+      "type": "string",
+      "description": "One line under the heading."
+    },
+    "commits": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "sha",
+          "message",
+          "files"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Part id, unique in the block; a route step can focus it."
+          },
+          "sha": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{7,64}$",
+            "description": "Commit sha, 7 to 64 lowercase hex characters (SHA-1 or SHA-256)."
+          },
+          "parents": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{7,64}$"
+            },
+            "description": "Parent shas, as `verstat facts diff` prints them. The graph draws lanes from them; a commit with two or more parents is a merge. Without parents the commits are drawn one under another in one colour, without lines."
+          },
+          "repo": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Repo name from the page's repos, when the page has more than one."
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The commit subject."
+          },
+          "intent": {
+            "type": "string",
+            "minLength": 1,
+            "description": "What the commit is for, in one line."
+          },
+          "additions": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "deletions": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "description": "Paths the commit touches, as in `changes` `path`. `verstat facts diff` prints them."
+          },
+          "external": {
+            "const": true,
+            "description": "A commit of the base branch that a merge in the range brought in (`external` in `verstat facts diff`): drawn dashed, without counts; it is not part of the diff."
+          }
+        }
+      }
+    }
+  }
+}

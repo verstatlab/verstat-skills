@@ -1,0 +1,65 @@
+{
+  "title": "invariants",
+  "description": "What must always hold and where it is enforced. `anchor` points at the enforcing line and `check` is text that line contains; when the line does not contain `check` (or `check` is missing), the invariant is shown as inferred, not as a fact. Not rendered when `invariants` is empty.",
+  "type": "object",
+  "required": [
+    "id",
+    "type",
+    "invariants"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "type": {
+      "const": "invariants"
+    },
+    "title": {
+      "type": "string",
+      "description": "Heading of the block (h2)."
+    },
+    "subtitle": {
+      "type": "string",
+      "description": "One line under the heading."
+    },
+    "invariants": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "text",
+          "anchor"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Part id, unique in the block; a route step can focus it."
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The invariant, in one sentence."
+          },
+          "check": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Text of the enforcing line, copied exactly (`if (invoice.status === 'paid')`)."
+          },
+          "anchor": {
+            "$ref": "verstat:page#/$defs/anchor",
+            "x-anchor-contains": "check",
+            "description": "The line that enforces the invariant."
+          },
+          "source": {
+            "$ref": "verstat:page#/$defs/source"
+          }
+        }
+      }
+    }
+  }
+}

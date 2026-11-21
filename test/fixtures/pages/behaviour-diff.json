@@ -1,0 +1,531 @@
+{
+  "schema": "verstat.page/1",
+  "skill": "explain-pr",
+  "question": "What does the PR “Refund before delivery” change?",
+  "repos": {
+    "checkout": {
+      "sha": "0000000",
+      "path": "."
+    },
+    "checkout@base": {
+      "sha": "0000000",
+      "path": "."
+    }
+  },
+  "blocks": [
+    {
+      "id": "answer",
+      "type": "brief",
+      "answer": "The PR lets shipped orders be refunded, extends the refund window from 7 to 14 days, removes reopen and publishes order.paid after payment.",
+      "pr": {
+        "title": "Refund before delivery",
+        "head": "feature/refund-shipped",
+        "base": "main",
+        "additions": 9,
+        "deletions": 9,
+        "files": 3,
+        "commits": 2
+      }
+    },
+    {
+      "id": "states",
+      "type": "state-machine",
+      "title": "Order states",
+      "states": [
+        {
+          "id": "pending",
+          "label": "Awaiting payment",
+          "initial": true
+        },
+        {
+          "id": "paid",
+          "label": "Paid"
+        },
+        {
+          "id": "shipped",
+          "label": "Shipped"
+        },
+        {
+          "id": "delivered",
+          "label": "Delivered"
+        },
+        {
+          "id": "refunded",
+          "label": "Refunded",
+          "final": true
+        },
+        {
+          "id": "cancelled",
+          "label": "Cancelled",
+          "final": true
+        }
+      ],
+      "transitions": [
+        {
+          "id": "t-pay",
+          "from": "pending",
+          "to": "paid",
+          "trigger": "pay",
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/orders/states.js",
+            "find": "['pending', 'pay', 'paid'],"
+          },
+          "source": "code",
+          "change": "changed",
+          "before": {
+            "trigger": "capture",
+            "to": "paid",
+            "anchor": {
+              "repo": "checkout@base",
+              "path": "src/orders/states.js",
+              "find": "['pending', 'capture', 'paid'],"
+            }
+          }
+        },
+        {
+          "id": "t-cancel",
+          "from": "pending",
+          "to": "cancelled",
+          "trigger": "cancel",
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/orders/states.js",
+            "find": "['pending', 'cancel', 'cancelled'],"
+          },
+          "source": "code"
+        },
+        {
+          "id": "t-ship",
+          "from": "paid",
+          "to": "shipped",
+          "trigger": "ship",
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/orders/states.js",
+            "find": "['paid', 'ship', 'shipped'],"
+          },
+          "source": "code",
+          "condition": "address confirmed",
+          "change": "changed",
+          "before": {
+            "condition": ""
+          }
+        },
+        {
+          "id": "t-reopen",
+          "from": "paid",
+          "to": "pending",
+          "trigger": "reopen",
+          "anchor": {
+            "repo": "checkout@base",
+            "path": "src/orders/states.js",
+            "find": "['paid', 'reopen', 'pending'],"
+          },
+          "source": "code",
+          "change": "removed"
+        },
+        {
+          "id": "t-deliver",
+          "from": "shipped",
+          "to": "delivered",
+          "trigger": "deliver",
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/orders/states.js",
+            "find": "['shipped', 'deliver', 'delivered'],"
+          },
+          "source": "code"
+        },
+        {
+          "id": "t-refund-shipped",
+          "from": "shipped",
+          "to": "refunded",
+          "trigger": "refund",
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/orders/states.js",
+            "find": "['shipped', 'refund', 'refunded'],"
+          },
+          "source": "code",
+          "change": "added"
+        },
+        {
+          "id": "t-refund",
+          "from": "delivered",
+          "to": "refunded",
+          "trigger": "refund",
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/orders/states.js",
+            "find": "['delivered', 'refund', 'refunded'],"
+          },
+          "source": "code",
+          "condition": "within 14 days",
+          "change": "changed",
+          "before": {
+            "condition": "within 7 days"
+          }
+        }
+      ]
+    },
+    {
+      "id": "rules",
+      "type": "decision-table",
+      "title": "Refund rules",
+      "conditions": [
+        {
+          "id": "status",
+          "label": "Status"
+        },
+        {
+          "id": "days",
+          "label": "Days after delivery"
+        },
+        {
+          "id": "total",
+          "label": "Amount"
+        },
+        {
+          "id": "extra",
+          "label": "Flag"
+        }
+      ],
+      "rows": [
+        {
+          "id": "r-ship",
+          "when": {
+            "status": "shipped",
+            "days": "*",
+            "total": "*",
+            "extra": "*"
+          },
+          "outcome": "carrier-recall",
+          "literal": "order.status === 'shipped'",
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/refunds/policy.js",
+            "find": "if (order.status === 'shipped') return 'carrier-recall';"
+          },
+          "source": "code",
+          "change": "added"
+        },
+        {
+          "id": "r-coupon",
+          "when": {
+            "status": "delivered",
+            "days": "*",
+            "total": "*",
+            "extra": "coupon"
+          },
+          "outcome": "manual",
+          "literal": "order.coupon",
+          "anchor": {
+            "repo": "checkout@base",
+            "path": "src/refunds/policy.js",
+            "find": "if (order.coupon) return 'manual';"
+          },
+          "source": "code",
+          "change": "removed"
+        },
+        {
+          "id": "r-auto",
+          "when": {
+            "status": "delivered",
+            "days": "≤ 14",
+            "total": "< 5000",
+            "extra": "*"
+          },
+          "outcome": "auto",
+          "literal": "days <= 14",
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/refunds/policy.js",
+            "find": "if (days <= 14 && order.total < 5000) return 'auto';"
+          },
+          "source": "code",
+          "change": "changed",
+          "before": {
+            "when": {
+              "days": "≤ 7"
+            },
+            "literal": "days <= 7",
+            "anchor": {
+              "repo": "checkout@base",
+              "path": "src/refunds/policy.js",
+              "find": "if (days <= 7 && order.total < 5000) return 'auto';"
+            }
+          }
+        },
+        {
+          "id": "r-manual",
+          "when": {
+            "status": "delivered",
+            "days": "≤ 14",
+            "total": "≥ 5000",
+            "extra": "*"
+          },
+          "outcome": "manual",
+          "literal": "days <= 14",
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/refunds/policy.js",
+            "find": "if (days <= 14 && order.total >= 5000) return 'manual';"
+          },
+          "source": "code",
+          "change": "changed",
+          "before": {
+            "when": {
+              "days": "≤ 7"
+            },
+            "literal": "days <= 7",
+            "anchor": {
+              "repo": "checkout@base",
+              "path": "src/refunds/policy.js",
+              "find": "if (days <= 7 && order.total >= 5000) return 'manual';"
+            }
+          }
+        },
+        {
+          "id": "r-reject",
+          "when": {
+            "status": "delivered",
+            "days": "> 14",
+            "total": "*",
+            "extra": "*"
+          },
+          "outcome": "reject",
+          "literal": "days > 14",
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/refunds/policy.js",
+            "find": "if (days > 14) return 'reject';"
+          },
+          "source": "code",
+          "change": "changed",
+          "before": {
+            "when": {
+              "days": "> 7"
+            },
+            "literal": "days > 7",
+            "anchor": {
+              "repo": "checkout@base",
+              "path": "src/refunds/policy.js",
+              "find": "if (days > 7) return 'reject';"
+            }
+          }
+        },
+        {
+          "id": "r-none",
+          "when": {
+            "status": "cancelled",
+            "days": "*",
+            "total": "*",
+            "extra": "*"
+          },
+          "literal": "return undefined",
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/refunds/policy.js",
+            "find": "return undefined;"
+          },
+          "source": "code"
+        }
+      ]
+    },
+    {
+      "id": "seq",
+      "type": "sequence",
+      "title": "Payment after the PR",
+      "participants": [
+        {
+          "id": "api",
+          "label": "API /orders",
+          "kind": "service"
+        },
+        {
+          "id": "gateway",
+          "label": "Payment gateway",
+          "kind": "external"
+        },
+        {
+          "id": "store",
+          "label": "Store",
+          "kind": "store"
+        },
+        {
+          "id": "bus",
+          "label": "Event bus",
+          "kind": "queue"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s-charge",
+          "from": "api",
+          "to": "gateway",
+          "label": "charge(order)",
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/api/orders.js",
+            "find": "const result = await payments.charge(order);"
+          },
+          "change": "changed",
+          "before": {
+            "label": "capture(order)",
+            "anchor": {
+              "repo": "checkout@base",
+              "path": "src/api/orders.js",
+              "find": "const result = await payments.capture(order);"
+            }
+          }
+        },
+        {
+          "id": "s-back",
+          "from": "gateway",
+          "to": "api",
+          "label": "{ ok, chargeId }",
+          "kind": "return"
+        },
+        {
+          "id": "s-save",
+          "from": "api",
+          "to": "store",
+          "label": "orders.save(paid)",
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/api/orders.js",
+            "find": "await orders.save(paid);"
+          }
+        },
+        {
+          "id": "s-publish",
+          "from": "api",
+          "to": "bus",
+          "label": "publish('order.paid')",
+          "anchor": {
+            "repo": "checkout",
+            "path": "src/api/orders.js",
+            "find": "bus.publish('order.paid', { id: paid.id, chargeId: result.chargeId });"
+          },
+          "change": "added"
+        }
+      ]
+    },
+    {
+      "id": "files",
+      "type": "changes",
+      "title": "Payment rules and API",
+      "repo": "checkout",
+      "base": "checkout@base",
+      "files": [
+        {
+          "id": "f-orders",
+          "path": "src/api/orders.js",
+          "fragments": [
+            {
+              "id": "fr-orders",
+              "kind": "read",
+              "title": "Payment via charge and the order.paid event",
+              "description": "Payment goes through charge and the order.paid event is published after it.",
+              "function": "payOrder"
+            }
+          ]
+        },
+        {
+          "id": "f-policy",
+          "path": "src/refunds/policy.js",
+          "fragments": [
+            {
+              "id": "fr-policy",
+              "kind": "read",
+              "title": "14-day window and recall",
+              "description": "The automatic refund window is 14 days; a shipped order is recalled from the carrier.",
+              "function": "refundDecision",
+              "notes": [
+                {
+                  "id": "n-window",
+                  "at": {
+                    "find": "if (days <= 14 && order.total < 5000)"
+                  },
+                  "text": "The window is doubled from 7 to 14 days."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "f-states",
+          "path": "src/orders/states.js",
+          "fragments": [
+            {
+              "id": "fr-states",
+              "kind": "read",
+              "title": "No reopen, refund for shipped",
+              "description": "The reopen transition is removed; refund is added for a shipped order.",
+              "function": "TRANSITIONS",
+              "notes": [
+                {
+                  "id": "n-reopen",
+                  "at": {
+                    "find": "['paid', 'reopen', 'pending'],",
+                    "side": "base"
+                  },
+                  "text": "A paid order no longer goes back to pending."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "route": [
+    {
+      "block": "answer",
+      "minutes": 1,
+      "why": "The gist of the PR.",
+      "modes": [
+        "short",
+        "full"
+      ]
+    },
+    {
+      "block": "states",
+      "focus": "t-refund-shipped",
+      "minutes": 2,
+      "why": "The new transition.",
+      "modes": [
+        "short",
+        "full"
+      ]
+    },
+    {
+      "block": "rules",
+      "focus": "r-auto",
+      "minutes": 2,
+      "why": "The refund window.",
+      "modes": [
+        "short",
+        "full"
+      ]
+    },
+    {
+      "block": "seq",
+      "focus": "s-publish",
+      "minutes": 1,
+      "why": "The new event.",
+      "modes": [
+        "full"
+      ]
+    },
+    {
+      "block": "files",
+      "minutes": 2,
+      "why": "The diff of three files.",
+      "modes": [
+        "full"
+      ]
+    }
+  ]
+}

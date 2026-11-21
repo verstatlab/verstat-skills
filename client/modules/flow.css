@@ -1,0 +1,76 @@
+.vs-flow { position: relative; width: 100%; background: var(--vs-bg); }
+.vs-flow .react-flow__pane { cursor: default; }
+.vs-flow.is-active .react-flow__pane { cursor: grab; }
+.vs-flow .react-flow__pane.dragging { cursor: grabbing; }
+.vs-flow .react-flow__attribution { background: transparent; font-family: var(--vs-mono); }
+.vs-flow .react-flow__attribution a { color: var(--vs-muted); }
+.vs-flow .react-flow__node { cursor: grab; }
+.vs-flow .react-flow__edgelabel-renderer { z-index: 3; }
+.vs-flow-handle.react-flow__handle { opacity: 0; width: 1px; height: 1px; min-width: 0; min-height: 0; border: 0; pointer-events: none; }
+.vs-flow-node {
+  box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; gap: 3px;
+  padding: 0 12px; border: 1px solid var(--vs-rule-strong); border-radius: 6px;
+  background: var(--vs-raised); color: var(--vs-ink); font-family: var(--vs-mono);
+}
+.vs-flow-node.is-click { cursor: pointer; }
+.vs-flow-node:focus-visible { outline: 2px solid var(--vs-accent); outline-offset: 2px; }
+.vs-flow-title { font-size: 13px; font-weight: 600; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vs-flow-sub { font-size: 10.5px; line-height: 1.2; color: var(--vs-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vs-flow-node.is-hot { background: var(--vs-accent-soft); border-color: color-mix(in oklab, var(--vs-accent) 45%, var(--vs-rule-strong)); }
+.vs-flow-node.is-dash { border-style: dashed; }
+.vs-flow-node.is-final { box-shadow: inset 0 0 0 3px var(--vs-raised), inset 0 0 0 4px var(--vs-rule-strong); }
+.vs-flow-node.is-add { background: var(--vs-add-soft); border-color: var(--vs-add); }
+.vs-flow-node.is-del { border-color: var(--vs-del); border-style: dashed; color: var(--vs-del); }
+.vs-flow-node.is-del .vs-flow-title { text-decoration: line-through; }
+.vs-flow-node.is-hl, .vs-flow-node.vs-focus { border-color: var(--vs-accent); box-shadow: 0 0 0 1px var(--vs-accent); outline: none; }
+.vs-flow-group {
+  box-sizing: border-box; padding: 10px 14px; border-radius: 10px; background: var(--vs-surface);
+  font-family: var(--vs-mono); font-size: 12px; color: var(--vs-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.vs-flow-group.vs-focus { box-shadow: 0 0 0 2px var(--vs-accent); outline: none; }
+.vs-flow-start { width: 10px; height: 10px; border-radius: 5px; background: var(--vs-muted); }
+.vs-flow .react-flow__node-start { cursor: default; }
+.vs-flow-hit { fill: none; stroke: transparent; stroke-width: 16px; }
+path.vs-flow-edge, .vs-flow-chevron { fill: none; stroke: var(--vs-muted); stroke-width: 1px; stroke-linecap: round; stroke-linejoin: round; }
+.vs-flow-chevron { stroke-width: 1.4px; }
+path.vs-flow-edge.is-dash { stroke-dasharray: 5 4; }
+path.vs-flow-edge.is-on, .vs-flow-chevron.is-on, path.vs-flow-edge.vs-focus, .vs-flow-chevron.vs-focus { stroke: var(--vs-accent); stroke-width: 1.5px; }
+path.vs-flow-edge.is-add, .vs-flow-chevron.is-add { stroke: var(--vs-add); }
+path.vs-flow-edge.is-del, .vs-flow-chevron.is-del { stroke: var(--vs-del); }
+.vs-flow .react-flow__edge:hover path.vs-flow-edge { stroke-width: 1.5px; }
+.vs-flow-label {
+  position: absolute; pointer-events: all; padding: 2px 4px; border-radius: 3px; background: var(--vs-bg);
+  font-family: var(--vs-mono); font-size: 11px; line-height: 1.3; color: var(--vs-muted); white-space: pre; text-align: center;
+}
+.vs-flow-label.is-click { cursor: pointer; }
+.vs-flow-label.is-framed { background: var(--vs-surface); }
+.vs-flow-label.is-empty { width: 12px; height: 12px; padding: 0; background: transparent; }
+.vs-flow-label.is-click:focus-visible { outline: 2px solid var(--vs-accent); }
+.vs-flow-label.is-on, .vs-flow-label.vs-focus { color: var(--vs-accent-ink); font-weight: 600; outline: none; }
+.vs-flow-label.is-add { color: var(--vs-add); font-weight: 600; }
+.vs-flow-label.is-del { color: var(--vs-del); font-weight: 600; text-decoration: line-through; }
+.vs-flow-tools { display: flex; gap: 6px; }
+.vs-flow-btn {
+  width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; padding: 0; cursor: pointer;
+  background: var(--vs-bg); color: var(--vs-ink); border: 1px solid var(--vs-rule-strong); border-radius: 6px;
+}
+.vs-flow-btn:hover { background: var(--vs-surface); }
+.vs-flow-btn svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.vs-flow-hint { display: block; max-width: calc(100vw - 180px); font-family: var(--vs-mono); font-size: 11px; color: var(--vs-muted); }
+.vs-flow-frame { border: var(--vs-rw) solid var(--vs-rule); border-radius: var(--vs-r); overflow: hidden; }
+.vs-flow-panel {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 16px 28px;
+  padding: 16px 20px; border-top: var(--vs-rw) solid var(--vs-rule); background: var(--vs-surface); font-size: 14px;
+}
+.vs-flow-panel > div { display: flex; flex-direction: column; gap: 4px; min-width: 0; align-items: flex-start; }
+.vs-flow-panel .vs-flow-k { font-family: var(--vs-mono); font-size: 11px; color: var(--vs-muted); text-transform: uppercase; }
+.vs-flow-panel .vs-flow-v { overflow-wrap: anywhere; }
+.vs-flow-panel .vs-flow-strong { font-weight: 700; }
+.vs-flow-panel .vs-flow-hint-row { grid-column: 1 / -1; color: var(--vs-muted); font-size: 13px; }
+.vs-flow-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-family: var(--vs-mono); font-size: 12px; color: var(--vs-muted); }
+.vs-flow-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.vs-flow-legend i { display: inline-block; width: 14px; height: 0; border-top: 1.5px solid var(--vs-muted); }
+.vs-flow-legend .is-add { border-color: var(--vs-add); }
+.vs-flow-legend .is-del { border-top-style: dashed; border-color: var(--vs-del); }
+.vs-flow-legend .is-on { border-color: var(--vs-accent); }
+.vs-flow-legend .is-dash { border-top-style: dashed; }

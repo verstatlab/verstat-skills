@@ -1,0 +1,229 @@
+{
+  "title": "changes",
+  "description": "explain-pr: one layer of the change, in reading order — the code of the PR without noise, tests and documentation, split by the agent into layers (one block per layer, one route step each), files and fragments. The agent writes the layer, its files and, per fragment, the kind, title, description, function, commit, notes and the fragment's test; the engine reads the lines of every fragment from git (the diff between `base` and `repo`) and the lines of each test from its anchor. Validation fails when a changed file is on no layer (documentation may be in `doc-changes`, tests in `test-coverage` with `mode: \"diff\"`, files that are only moved code or noise may be left out), when a file is in two layers or is not changed, when a changed line of a listed file is in no fragment, when two fragments share a changed line, when a note is not on a line of its fragment, or when a fragment's test has no anchor.",
+  "type": "object",
+  "required": [
+    "id",
+    "type",
+    "repo",
+    "base",
+    "files"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "type": {
+      "const": "changes"
+    },
+    "title": {
+      "type": "string",
+      "description": "Name of the layer (h2), e.g. “Package tasks: the statusHeld key”."
+    },
+    "subtitle": {
+      "type": "string",
+      "description": "Why this layer comes at this point of the reading, in one line."
+    },
+    "repo": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The head side: a key of `repos`, e.g. \"shop\"."
+    },
+    "base": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The base side: a key of `repos`, e.g. \"shop@base\". Its sha must exist in the head checkout."
+    },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "path",
+          "fragments"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Part id, unique in the block; a route step can focus it (opens its tab)."
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "description": "File path from the repo root, as `verstat facts diff` prints it."
+          },
+          "fragments": {
+            "type": "array",
+            "description": "Every changed line of the file that is not moved code or noise is in exactly one fragment. Empty only for a binary or generated file.",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "kind",
+                "title",
+                "description"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Part id; a route step can focus it (opens its tab and card)."
+                },
+                "kind": {
+                  "enum": [
+                    "read",
+                    "skim",
+                    "skip"
+                  ],
+                  "description": "`read` — behaviour changed, open on the page; `skim` — small or mechanical; `skip` — imports and wiring."
+                },
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "What the fragment does, in a few words."
+                },
+                "description": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "One or two sentences: what changed and why."
+                },
+                "function": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The function, type or key the fragment sits in, e.g. \"HeldOf\"."
+                },
+                "commit": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{7,64}$",
+                  "description": "The commit that brings the fragment; the commit filter dims the others."
+                },
+                "at": {
+                  "type": "object",
+                  "required": [
+                    "find"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "find": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Exact text in the file (may span lines): the first line."
+                    },
+                    "findEnd": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Text after `find` that ends the range: its line is the last one."
+                    },
+                    "nth": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "description": "Which occurrence of `find`, when it occurs more than once."
+                    },
+                    "side": {
+                      "enum": [
+                        "repo",
+                        "base"
+                      ],
+                      "description": "`repo` (default): lines of the new version. `base`: lines of the old version — for removed lines."
+                    }
+                  },
+                  "description": "The fragment's lines: the diff lines whose line (new version, or old with `side: \"base\"`) is between `find` and `findEnd`, with the removed (added) lines among them and up to two lines of context. Leave it out for the whole diff of the file."
+                },
+                "notes": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "at",
+                      "text"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Part id; give one so a route step can focus the note."
+                      },
+                      "at": {
+                        "type": "object",
+                        "required": [
+                          "find"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "find": {
+                            "type": "string",
+                            "minLength": 1,
+                            "description": "Exact text in the file (may span lines): the first line."
+                          },
+                          "findEnd": {
+                            "type": "string",
+                            "minLength": 1,
+                            "description": "Text after `find` that ends the range: its line is the last one."
+                          },
+                          "nth": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "description": "Which occurrence of `find`, when it occurs more than once."
+                          },
+                          "side": {
+                            "enum": [
+                              "repo",
+                              "base"
+                            ],
+                            "description": "`repo` (default): lines of the new version. `base`: lines of the old version — for removed lines."
+                          }
+                        },
+                        "description": "The line the note is about, in this file; every line of it must be shown in the fragment. The card goes under its last line."
+                      },
+                      "text": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "The note, shown as a card under its line."
+                      },
+                      "source": {
+                        "$ref": "verstat:page#/$defs/source"
+                      }
+                    }
+                  }
+                },
+                "test": {
+                  "type": "object",
+                  "required": [
+                    "name",
+                    "anchor",
+                    "description"
+                  ],
+                  "additionalProperties": false,
+                  "description": "The test that fails when this fragment breaks. Leave it out when there is none: test coverage then shows the fragment as not covered.",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Test name as written."
+                    },
+                    "anchor": {
+                      "$ref": "verstat:page#/$defs/anchor",
+                      "description": "The test: `find` on its first line, `findEnd` on its last; the page shows these lines. A list `find` is rejected."
+                    },
+                    "description": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "What the test checks about this fragment, in one sentence."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

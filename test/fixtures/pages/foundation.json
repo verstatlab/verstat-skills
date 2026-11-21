@@ -1,0 +1,340 @@
+{
+  "schema": "verstat.page/1",
+  "skill": "explain",
+  "question": "How does an order become paid and what happens if the charge fails?",
+  "repos": {
+    "shop": {
+      "sha": "0000000",
+      "path": "."
+    }
+  },
+  "glossary": [
+    {
+      "term": "charge",
+      "code": "capture",
+      "aliases": [
+        "charges",
+        "charging"
+      ],
+      "definition": "An attempt to take money through the payment gateway; up to three retries, then an error.",
+      "anchor": {
+        "repo": "shop",
+        "path": "src/payments/capture.js",
+        "find": "async function capture(gateway, order) {"
+      },
+      "source": "code"
+    },
+    {
+      "term": "retry",
+      "code": "RETRIES",
+      "aliases": [
+        "retries",
+        "retried",
+        "retrying"
+      ],
+      "definition": "How many times a charge tries the gateway before giving up with the last error.",
+      "anchor": {
+        "repo": "shop",
+        "path": "src/payments/capture.js",
+        "find": "const RETRIES = 3;"
+      }
+    },
+    {
+      "term": "paid order",
+      "code": "STATUS.paid",
+      "aliases": [
+        "paid orders"
+      ],
+      "definition": "An order whose amount matched the charged one; only it can be shipped.",
+      "anchor": {
+        "repo": "shop",
+        "path": "src/orders/order.js",
+        "find": "paid: 'paid',"
+      }
+    },
+    {
+      "term": "order",
+      "code": "createOrder",
+      "aliases": [
+        "order's",
+        "orders"
+      ],
+      "definition": "A set of items with a total; starts its life in the pending state.",
+      "anchor": {
+        "repo": "shop",
+        "path": "src/orders/order.js",
+        "find": "function createOrder(items) {"
+      }
+    }
+  ],
+  "blocks": [
+    {
+      "id": "answer",
+      "type": "brief",
+      "answer": "An order becomes paid when a charge returns a payment whose amount equals the order total; the gateway is tried three times, and if all retries fail, capture throws the last error and the order stays in pending.",
+      "facts": [
+        {
+          "id": "f-amount",
+          "text": "markPaid refuses if the payment amount does not match the order total.",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/orders/order.js",
+            "find": "if (payment.amount !== order.total) throw new Error('amount mismatch');"
+          },
+          "source": "code"
+        },
+        {
+          "id": "f-retries",
+          "text": "A charge makes up to three attempts and does not wait between them.",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/payments/capture.js",
+            "find": "for (let attempt = 1; attempt <= RETRIES; attempt++) {",
+            "findEnd": "  }\n  throw lastError;"
+          },
+          "source": "code"
+        },
+        {
+          "id": "f-test",
+          "text": "The test checks that after one timeout the order is still paid.",
+          "anchor": {
+            "repo": "shop",
+            "path": "test/capture.test.js",
+            "find": "assert.equal(order.status, 'paid');"
+          },
+          "source": "test"
+        },
+        {
+          "id": "f-idem",
+          "text": "The gateway probably does not deduplicate retries, so a timeout can lead to a double charge.",
+          "source": "inferred"
+        }
+      ]
+    },
+    {
+      "id": "gloss",
+      "type": "glossary",
+      "title": "Four words you need before reading on",
+      "subtitle": "Terms are underlined in every text on the page; hover to see the definition."
+    },
+    {
+      "id": "route-overview",
+      "type": "route",
+      "title": "How to read this page"
+    },
+    {
+      "id": "where",
+      "type": "code-anchor",
+      "title": "Where to look in the code",
+      "subtitle": "Three places that make up the payment path.",
+      "items": [
+        {
+          "id": "w-create",
+          "text": "A new order is always in pending; the total is computed right away.",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/orders/order.js",
+            "find": "function createOrder(items) {"
+          },
+          "source": "code"
+        },
+        {
+          "id": "w-capture",
+          "label": "capture.js · attempts",
+          "text": "The charge retry loop: the last error goes up.",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/payments/capture.js",
+            "find": "throw lastError;"
+          },
+          "source": "code"
+        },
+        {
+          "id": "w-ship",
+          "text": "Only a paid order can be shipped.",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/orders/order.js",
+            "find": "if (order.status !== STATUS.paid) throw new Error('order is not paid');"
+          },
+          "source": "code"
+        }
+      ]
+    },
+    {
+      "id": "review",
+      "type": "reviewer-focus",
+      "title": "What the reviewer should look at",
+      "items": [
+        {
+          "id": "r-retry",
+          "title": "Retries with no pause",
+          "text": "Three charge attempts go one after another; with the gateway down that is three quick errors.",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/payments/capture.js",
+            "find": "const RETRIES = 3;"
+          },
+          "source": "code"
+        },
+        {
+          "id": "r-refund",
+          "title": "Refund of a shipped order",
+          "text": "refund also allows refunding shipped; whether that is intended is not visible from the code.",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/payments/capture.js",
+            "find": "if (order.status !== 'paid' && order.status !== 'shipped') throw new Error('nothing to refund');"
+          },
+          "source": "inferred"
+        }
+      ]
+    },
+    {
+      "id": "oq",
+      "type": "open-questions",
+      "title": "What the code did not confirm",
+      "items": [
+        {
+          "id": "q-gateway",
+          "text": "Does the gateway return the same payment for a repeated charge of the same amount?",
+          "anchor": {
+            "repo": "shop",
+            "path": "src/payments/capture.js",
+            "find": "const payment = await gateway.charge(order.total);"
+          }
+        }
+      ]
+    },
+    {
+      "id": "cp",
+      "type": "change-points",
+      "title": "If you need to change this behaviour",
+      "points": [
+        {
+          "id": "cp-start",
+          "kind": "start",
+          "title": "capture.js",
+          "text": "The retry loop and the handling of a charge error.",
+          "anchors": [
+            {
+              "repo": "shop",
+              "path": "src/payments/capture.js",
+              "find": "async function capture(gateway, order) {"
+            }
+          ]
+        },
+        {
+          "id": "cp-together",
+          "kind": "together",
+          "title": "order.js",
+          "text": "markPaid checks the amount; changes to the charge almost always touch it too.",
+          "anchors": [
+            {
+              "repo": "shop",
+              "path": "src/orders/order.js",
+              "find": "function markPaid(order, payment) {"
+            }
+          ]
+        },
+        {
+          "id": "cp-danger",
+          "kind": "danger",
+          "title": "STATUS",
+          "text": "State names are stored in the data; renaming them breaks old orders.",
+          "anchors": [
+            {
+              "repo": "shop",
+              "path": "src/orders/order.js",
+              "find": "const STATUS = {"
+            }
+          ],
+          "source": "inferred"
+        },
+        {
+          "id": "cp-run",
+          "kind": "run",
+          "title": "Charge test",
+          "text": "Checks payment after one timeout.",
+          "commands": [
+            "node test/capture.test.js"
+          ],
+          "anchors": [
+            {
+              "repo": "shop",
+              "path": "test/capture.test.js",
+              "find": "async function capturesAfterOneFailure() {"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "route": [
+    {
+      "block": "answer",
+      "minutes": 1,
+      "why": "The answer and the key facts.",
+      "modes": [
+        "short",
+        "full"
+      ]
+    },
+    {
+      "block": "gloss",
+      "minutes": 1,
+      "why": "The words the code speaks.",
+      "modes": [
+        "full"
+      ]
+    },
+    {
+      "block": "route-overview",
+      "minutes": 0.5,
+      "why": "The reading order.",
+      "modes": [
+        "full"
+      ]
+    },
+    {
+      "block": "where",
+      "focus": "w-capture",
+      "minutes": 1,
+      "why": "Where exactly the charge is retried.",
+      "modes": [
+        "short",
+        "full"
+      ]
+    },
+    {
+      "block": "review",
+      "minutes": 2,
+      "why": "Risks worth checking.",
+      "modes": [
+        "full"
+      ],
+      "focus": "r-refund"
+    },
+    {
+      "block": "oq",
+      "minutes": 1,
+      "why": "What stayed unconfirmed.",
+      "modes": [
+        "full"
+      ]
+    },
+    {
+      "block": "cp",
+      "focus": "cp-run",
+      "minutes": 1,
+      "why": "Where to start a change.",
+      "modes": [
+        "short",
+        "full"
+      ]
+    }
+  ],
+  "openQuestions": [
+    "What does the client do when capture throws after three retries?"
+  ]
+}
