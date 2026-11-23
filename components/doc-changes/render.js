@@ -1,7 +1,6 @@
 const MARK = { '+': '+', '-': '−', ' ': '' };
 
-function tabName(path) {
-  const name = path.split('/').pop();
+function adrName(name) {
   const adr = name.match(/^(\d{4})-/);
   return adr ? `ADR ${adr[1]}` : name;
 }
@@ -21,6 +20,7 @@ export default function (block, ctx) {
   const { el } = ctx;
   const files = block.files.filter((f) => f.diff);
   if (!files.length) return null;
+  const names = ctx.pathLabels(files.map((f) => f.path), adrName);
   const md = window.verstat.markdown;
   let filter = null;
   const tabs = new Map();
@@ -98,9 +98,9 @@ export default function (block, ctx) {
   }
 
   function hunkTitle(file, items) {
-    if (!items) return tabName(file.path);
+    if (!items) return names.get(file.path);
     const heading = items.find((i) => /^h[1-4]$/.test(i.type));
-    return heading ? heading.text.replace(/[`*_]/g, '') : tabName(file.path);
+    return heading ? heading.text.replace(/[`*_]/g, '') : names.get(file.path);
   }
 
   function card(file, hunk, k) {
@@ -191,7 +191,7 @@ export default function (block, ctx) {
   const read = ctx.read;
   const tabBar = el('div', { class: 'vs-dc-tabs', role: 'group', 'aria-label': ctx.t('doc-changes.docs') }, files.map((file) => {
     const tab = el('button', { type: 'button', class: 'vs-dc-tab', title: file.path, onclick: () => pick(file) }, [
-      el('span', { class: 'vs-dc-tabname' }, tabName(file.path)),
+      el('span', { class: 'vs-dc-tabname' }, names.get(file.path)),
       el('span', { class: 'vs-dc-tabstat' }, `+${file.diff.additions} −${file.diff.deletions}`),
     ]);
     tabs.set(file, tab);

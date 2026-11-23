@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { describe, test } from 'node:test';
 import { runInNewContext } from 'node:vm';
 import { wrapRender } from '../src/build.mjs';
-import { ROOT, commit, git, i18n, run, tempDir, writeFiles, writePage } from './helpers.mjs';
+import { ROOT, commit, git, i18n, pathLabels, run, tempDir, writeFiles, writePage } from './helpers.mjs';
 
 const FIXTURES = join(ROOT, 'test', 'fixtures');
 
@@ -276,7 +276,7 @@ describe('changes (layers)', () => {
     const boxes = [];
     const ctx = {
       ...i18n(),
-      page: data, el, part: (n) => n, on: () => {}, onFocus: () => {}, sourceChip: () => null,
+      page: data, el, part: (n) => n, on: () => {}, onFocus: () => {}, sourceChip: () => null, pathLabels: pathLabels(),
       anchorChip: (a, label) => el('chip', {}, label), kicker: (t) => { kicker = t; },
       read: { key: (r, p) => `${r}/${p}`, box: (k) => { boxes.push(k); return el('box'); } },
     };
@@ -299,6 +299,15 @@ describe('changes (layers)', () => {
     assert.ok(rows.some((r) => text(r).includes('AGENT NOTE · line 10')));
     assert.ok(text(root).includes('TEST OF THIS FRAGMENT'));
     assert.ok(text(root).includes("test('a shipped order can be refunded'"));
+
+    const [first, second] = layer(data, 'ch-rules').files;
+    const twins = {
+      ...layer(data, 'ch-rules'),
+      files: [{ ...first, path: 'src/orders/index.js' }, { ...second, path: 'src/refunds/index.js' }, { ...first, id: 'solo', path: 'src/orders/states.js' }],
+    };
+    const picks = find(registered(twins, ctx), (n) => n.attrs && n.attrs.class === 'vs-ch-pick');
+    assert.deepEqual(picks.map((p) => text(p.children[0])), ['orders/index.js', 'refunds/index.js', 'states.js']);
+    assert.deepEqual(picks.map((p) => p.attrs.title), twins.files.map((f) => f.path));
   });
 
   test('test-coverage in diff mode counts the read and skim fragments', () => {

@@ -232,12 +232,13 @@ export default function (block, ctx) {
     return card;
   }
 
+  const names = ctx.pathLabels(block.files.map((f) => f.path));
   block.files.forEach((file, i) => {
     const diff = file.diff || {};
     const key = read ? read.key(block.repo, file.path) : null;
     const tab = ctx.part(el('div', { class: 'vs-ch-tab' }, [
-      el('button', { type: 'button', class: 'vs-ch-pick', onclick: () => pick(i) }, [
-        el('span', { class: 'vs-ch-name', 'data-no-terms': true }, file.path),
+      el('button', { type: 'button', class: 'vs-ch-pick', title: file.path, onclick: () => pick(i) }, [
+        el('span', { class: 'vs-ch-name', 'data-no-terms': true }, names.get(file.path)),
         el('span', { class: 'vs-ch-stat' }, `+${diff.additions || 0} −${diff.deletions || 0}`),
       ]),
     ]), file.id);

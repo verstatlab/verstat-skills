@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { describe, test } from 'node:test';
 import { runInNewContext } from 'node:vm';
 import { wrapRender } from '../src/build.mjs';
-import { ROOT, commit, git, i18n, run, tempDir, writeFiles, writePage } from './helpers.mjs';
+import { ROOT, commit, git, i18n, pathLabels, run, tempDir, writeFiles, writePage } from './helpers.mjs';
 
 const window = {};
 runInNewContext(readFileSync(join(ROOT, 'client', 'modules', 'markdown.js'), 'utf8'), { window });
@@ -44,9 +44,17 @@ const HEAD_DOC = BASE_DOC
 function docRepo() {
   const dir = tempDir('verstat-docs-');
   git(dir, 'init', '-q');
-  writeFiles(dir, { 'docs/guide.md': BASE_DOC, 'README.md': '# readme\n', 'src/app.js': 'export const a = 1;\n' });
+  const skill = (name) => `# ${name}\n\nOld step.\n`;
+  writeFiles(dir, {
+    'docs/guide.md': BASE_DOC, 'README.md': '# readme\n', 'src/app.js': 'export const a = 1;\n',
+    'skills/autopilot/SKILL.md': skill('autopilot'), 'skills/run-task/SKILL.md': skill('run-task'), 'docs/adr/0037-claims.md': skill('Claims'),
+  });
   const base = commit(dir, 'base');
-  writeFiles(dir, { 'docs/guide.md': HEAD_DOC, 'src/app.js': 'export const a = 2;\n' });
+  writeFiles(dir, {
+    'docs/guide.md': HEAD_DOC, 'src/app.js': 'export const a = 2;\n',
+    'skills/autopilot/SKILL.md': `${skill('autopilot')}New step.\n`, 'skills/run-task/SKILL.md': `${skill('run-task')}New step.\n`,
+    'docs/adr/0037-claims.md': `${skill('Claims')}Accepted.\n`,
+  });
   const head = commit(dir, 'head');
   return { dir, base, head };
 }
@@ -264,8 +272,8 @@ describe('doc-changes block', () => {
     assert.ok(diff.hunks.length > 0);
   });
 
-  test('each document tab carries a reading box keyed like a file of a layer', () => {
-    const { code, stderr, data } = build(docPage([{ id: 'guide', path: 'docs/guide.md' }]));
+  function renderTabs(files) {
+    const { code, stderr, data } = build(docPage(files));
     assert.equal(code, 0, stderr);
     let registered = null;
     const meta = JSON.parse(readFileSync(join(ROOT, 'components', 'doc-changes', 'meta.json'), 'utf8'));
@@ -283,15 +291,33 @@ describe('doc-changes block', () => {
     const boxes = [];
     const ctx = {
       ...i18n(),
-      page: data, el, part: (n) => n, on: () => {}, onFocus: () => {},
+      page: data, el, part: (n) => n, on: () => {}, onFocus: () => {}, pathLabels: pathLabels(),
       read: { key: (repoName, path) => `${repoName}/${path}`, box: (k) => { boxes.push(k); return el('box'); } },
     };
-    const root = registered(data.blocks[0], ctx);
+    return { root: registered(data.blocks[0], ctx), boxes };
+  }
+
+  test('each document tab carries a reading box keyed like a file of a layer', () => {
+    const { root, boxes } = renderTabs([{ id: 'guide', path: 'docs/guide.md' }]);
     assert.ok(root);
     assert.deepEqual(boxes, ['docs/docs/guide.md']);
     const tabs = root.children[0];
     assert.equal(tabs.attrs.role, 'group');
     assert.ok(tabs.children.every((wrap) => wrap.attrs.class === 'vs-dc-tabwrap' && wrap.children[1].tag === 'box'));
+  });
+
+  test('tabs tell two files of the same name apart and keep the ADR name', () => {
+    const paths = ['docs/guide.md', 'skills/autopilot/SKILL.md', 'skills/run-task/SKILL.md', 'docs/adr/0037-claims.md'];
+    const { root } = renderTabs(paths.map((path, i) => ({ id: `f${i}`, path })));
+    const buttons = root.children[0].children.map((wrap) => wrap.children[0]);
+    assert.deepEqual(buttons.map((b) => b.children[0].children[0]), ['guide.md', 'autopilot/SKILL.md', 'run-task/SKILL.md', 'ADR 0037']);
+    assert.deepEqual(buttons.map((b) => b.attrs.title), paths);
+  });
+
+  test('hover tints the whole tab, not only its button, and skips the selected one', () => {
+    const css = readFileSync(join(ROOT, 'client', 'modules', 'markdown.css'), 'utf8');
+    assert.match(css, /\.vs-dc-tabwrap:not\(:has\([^)]*aria-pressed="true"[^)]*\)\):hover\s*\{[^}]*color-mix\(in oklab, var\(--vs-surface\) 60%, transparent\)/);
+    assert.doesNotMatch(css, /\.vs-dc-tab:hover/);
   });
 
   test('the markdown module stays off pages without the block', () => {

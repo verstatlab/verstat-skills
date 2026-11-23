@@ -20,6 +20,7 @@ is fixed by `docs/design.md` §9.
 | `diff.js` | the Before / After / Diff switch |
 | `modules/flow.js`, `modules/flow.css` | the React Flow wrapper (`verstat.flow`); inlined only with a block that lists `flow` in `meta.json` `modules` (below) |
 | `modules/read.js`, `modules/read.css` | the reading progress (`verstat.read`); inlined only with a block that lists `read` in `modules` |
+| `modules/paths.js` | `verstat.pathLabels`: tab labels for a list of file paths; inlined with `changes` and `doc-changes` |
 | `modules/commit-graph.js` | `verstat.commitGraph`: the lanes of the commits graph; inlined with `commits` |
 | `modules/markdown.js`, `modules/markdown.css` | `verstat.markdown`: Markdown blocks, hunk fragments and inline runs, and the `doc-changes` look; inlined with `doc-changes` |
 | `i18n.js` | `verstat.t`, `verstat.plural`, `verstat.label`: the UI strings of the page's language (see **Locales**) |
@@ -105,6 +106,7 @@ own emptiness: a list block with an empty list, the glossary block on a page wit
 | `route()` / `goToStep(index)` | the route state / scroll to a step as a click on it would |
 | `diff` | the diff-mode helpers (below) |
 | `kicker(text)` | replaces the label in this block's kicker for this render (“layer 1 of 3”) |
+| `pathLabels(paths, short?)` | a `Map` from each path to its shortest distinguishing suffix (`a/SKILL.md`, `b/SKILL.md`); `short(name)` may rewrite the file name, and a label whose rewrite still collides at full depth falls back to the path; `undefined` unless a block on the page lists the `paths` module |
 | `read` | the reading progress (`verstat.read`, below) when the page carries the `read` module, else `undefined` |
 
 Render with `ctx.el` and plain DOM; there is no framework. Text is highlighted for glossary terms
@@ -315,8 +317,9 @@ of a map or a graph. Clicking a node of a map or a graph also opens its first an
 ## Changes
 
 `changes` is one layer. Its kicker reads “NN · Changes · layer k of N” (k counts the `changes` blocks with files on
-the page). Under the heading, the layer's files are tabs (no “all”): the path, `+N −N` and the
-reading box; the first tab is selected (`--vs-surface`), a read tab that is not selected is dimmed
+the page). Under the heading, the layer's files are tabs (no “all”): the path, shortened to as many
+trailing folders as it takes to tell it from the layer's other files (full path in the tooltip),
+`+N −N` and the reading box; the first tab is selected (`--vs-surface`), a read tab that is not selected is dimmed
 to .55. The selected file shows its fragments, ordered by their first line, each a card:
 
 - a header `96px 108px 1fr auto` on `--vs-surface`: the lines of the new version (`12–14`, or
@@ -373,7 +376,10 @@ a repo.
 
 ## Doc changes
 
-`doc-changes` shows one tab per file (name and `+N −N`; `NNNN-….md` reads “ADR NNNN”) and under it
+`doc-changes` shows one tab per file (the path, shortened to as many trailing folders as it takes to
+tell it from the block's other files, full path in the tooltip, and `+N −N`; `NNNN-….md` reads
+“ADR NNNN”); hovering a tab other than the selected one tints the whole tab, reading box included.
+Under the tabs come
 the file's `summary` and one card per hunk, in file order. A card's header is the changed lines of
 the new version (“was A–B” for a removal only), the kind badge (READ / SKIM / SKIP),
 the title and summary · file name, the commit, `+N −N` and a toggle; only “read” cards start open.

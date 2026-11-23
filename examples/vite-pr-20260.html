@@ -731,10 +731,9 @@ svg .vs-removed { stroke: var(--vs-del); stroke-dasharray: var(--vs-dash); }
 }
 .vs-dc-tabwrap { display: flex; align-items: stretch; flex: none; border-right: 1px solid var(--vs-rule); }
 .vs-dc-tabwrap:has(.vs-dc-tab[aria-pressed="true"]) { background: var(--vs-surface); }
+.vs-dc-tabwrap:not(:has(.vs-dc-tab[aria-pressed="true"])):hover { background: color-mix(in oklab, var(--vs-surface) 60%, transparent); }
 .vs-dc-tabwrap.vs-dc-done .vs-dc-tab[aria-pressed="false"] { opacity: .55; }
 .vs-dc-tabwrap .vs-dc-tab.vs-dc-dim, .vs-dc-tabwrap.vs-dc-done .vs-dc-tab.vs-dc-dim { opacity: .35; }
-.vs-dc-tab:hover { background: color-mix(in oklab, var(--vs-surface) 60%, transparent); }
-.vs-dc-tab[aria-pressed="true"] { background: var(--vs-surface); }
 .vs-dc-tabname { font-family: var(--vs-mono); font-size: 12px; font-weight: 600; white-space: nowrap; }
 .vs-dc-tabstat { font-family: var(--vs-mono); font-size: 11px; color: var(--vs-muted); white-space: nowrap; }
 .vs-dc-summary { font-size: 14px; color: var(--vs-muted); margin: 0; }
@@ -809,7 +808,7 @@ svg .vs-removed { stroke: var(--vs-del); stroke-dasharray: var(--vs-dash); }
 .vs-md-h3 { font-size: 15.5px; }
 .vs-md-h4 { font-size: 14.5px; }
 .vs-md-row + .vs-md-row .vs-md-h1, .vs-md-row + .vs-md-row .vs-md-h2, .vs-md-row + .vs-md-row .vs-md-h3, .vs-md-row + .vs-md-row .vs-md-h4 { margin-top: 8px; }
-.vs-md-li, .vs-md-oli, .vs-md-quote { display: grid; grid-template-columns: 18px minmax(0, 1fr); }
+.vs-md-li, .vs-md-oli, .vs-md-quote { display: grid; grid-template-columns: 18px minmax(0, 1fr); align-items: baseline; }
 .vs-md-oli .vs-md-bullet { font-family: var(--vs-mono); font-size: 12.5px; }
 .vs-md-quote { font-style: italic; }
 .vs-md-pre { font-family: var(--vs-mono); font-size: 12.5px; white-space: pre-wrap; background: var(--vs-code-bg); border-radius: 0; color: var(--vs-ink); }
@@ -1360,6 +1359,7 @@ svg .vs-removed { stroke: var(--vs-del); stroke-dasharray: var(--vs-dash); }
       goToStep: function (index) { vs.route.go(index); },
       diff: makeDiff(entry.diffMode),
       read: vs.read,
+      pathLabels: vs.pathLabels,
       kicker: function (text) { entry.kicker = text; },
     };
     return ctx;
@@ -2291,6 +2291,55 @@ svg .vs-removed { stroke: var(--vs-del); stroke-dasharray: var(--vs-dash); }
   'use strict';
   var vs = (window.verstat = window.verstat || {});
 
+  // paths → Map(path → label): the last k segments, k grown per path only while its label
+  // collides with another's. short(name) may rewrite the file segment (0037-x.md → ADR 0037); a label that
+  // still collides at full depth drops the rewrite, so distinct paths always get distinct labels.
+  vs.pathLabels = function (list, short) {
+    var paths = list.filter(function (p, i) { return list.indexOf(p) === i; });
+    var parts = {};
+    var depth = {};
+    var raw = {};
+    paths.forEach(function (p) {
+      parts[p] = p.split('/');
+      depth[p] = 1;
+    });
+
+    function label(p) {
+      if (raw[p]) return p;
+      var segs = parts[p].slice(-depth[p]);
+      if (short) segs[segs.length - 1] = short(segs[segs.length - 1]);
+      return segs.join('/');
+    }
+
+    for (;;) {
+      var groups = {};
+      paths.forEach(function (p) {
+        var l = label(p);
+        (groups[l] = groups[l] || []).push(p);
+      });
+      var clash = [];
+      Object.keys(groups).forEach(function (l) {
+        if (groups[l].length > 1) clash = clash.concat(groups[l]);
+      });
+      if (!clash.length) break;
+      clash.forEach(function (p) {
+        if (depth[p] < parts[p].length) depth[p]++;
+        else raw[p] = true;
+      });
+    }
+
+    var out = new Map();
+    paths.forEach(function (p) { out.set(p, label(p)); });
+    return out;
+  };
+})();
+
+</script>
+<script>
+(function () {
+  'use strict';
+  var vs = (window.verstat = window.verstat || {});
+
   var keys = [];
   var marks = null;
   var widgets = [];
@@ -3072,12 +3121,13 @@ function verstatRender(block, ctx) {
     return card;
   }
 
+  const names = ctx.pathLabels(block.files.map((f) => f.path));
   block.files.forEach((file, i) => {
     const diff = file.diff || {};
     const key = read ? read.key(block.repo, file.path) : null;
     const tab = ctx.part(el('div', { class: 'vs-ch-tab' }, [
-      el('button', { type: 'button', class: 'vs-ch-pick', onclick: () => pick(i) }, [
-        el('span', { class: 'vs-ch-name', 'data-no-terms': true }, file.path),
+      el('button', { type: 'button', class: 'vs-ch-pick', title: file.path, onclick: () => pick(i) }, [
+        el('span', { class: 'vs-ch-name', 'data-no-terms': true }, names.get(file.path)),
         el('span', { class: 'vs-ch-stat' }, `+${diff.additions || 0} −${diff.deletions || 0}`),
       ]),
     ]), file.id);
@@ -3412,8 +3462,7 @@ function verstatRender(block, ctx) {
 verstat.register("doc-changes", (() => {
 const MARK = { '+': '+', '-': '−', ' ': '' };
 
-function tabName(path) {
-  const name = path.split('/').pop();
+function adrName(name) {
   const adr = name.match(/^(\d{4})-/);
   return adr ? `ADR ${adr[1]}` : name;
 }
@@ -3433,6 +3482,7 @@ function verstatRender(block, ctx) {
   const { el } = ctx;
   const files = block.files.filter((f) => f.diff);
   if (!files.length) return null;
+  const names = ctx.pathLabels(files.map((f) => f.path), adrName);
   const md = window.verstat.markdown;
   let filter = null;
   const tabs = new Map();
@@ -3510,9 +3560,9 @@ function verstatRender(block, ctx) {
   }
 
   function hunkTitle(file, items) {
-    if (!items) return tabName(file.path);
+    if (!items) return names.get(file.path);
     const heading = items.find((i) => /^h[1-4]$/.test(i.type));
-    return heading ? heading.text.replace(/[`*_]/g, '') : tabName(file.path);
+    return heading ? heading.text.replace(/[`*_]/g, '') : names.get(file.path);
   }
 
   function card(file, hunk, k) {
@@ -3603,7 +3653,7 @@ function verstatRender(block, ctx) {
   const read = ctx.read;
   const tabBar = el('div', { class: 'vs-dc-tabs', role: 'group', 'aria-label': ctx.t('doc-changes.docs') }, files.map((file) => {
     const tab = el('button', { type: 'button', class: 'vs-dc-tab', title: file.path, onclick: () => pick(file) }, [
-      el('span', { class: 'vs-dc-tabname' }, tabName(file.path)),
+      el('span', { class: 'vs-dc-tabname' }, names.get(file.path)),
       el('span', { class: 'vs-dc-tabstat' }, `+${file.diff.additions} −${file.diff.deletions}`),
     ]);
     tabs.set(file, tab);

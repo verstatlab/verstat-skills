@@ -20,10 +20,9 @@
 }
 .vs-dc-tabwrap { display: flex; align-items: stretch; flex: none; border-right: 1px solid var(--vs-rule); }
 .vs-dc-tabwrap:has(.vs-dc-tab[aria-pressed="true"]) { background: var(--vs-surface); }
+.vs-dc-tabwrap:not(:has(.vs-dc-tab[aria-pressed="true"])):hover { background: color-mix(in oklab, var(--vs-surface) 60%, transparent); }
 .vs-dc-tabwrap.vs-dc-done .vs-dc-tab[aria-pressed="false"] { opacity: .55; }
 .vs-dc-tabwrap .vs-dc-tab.vs-dc-dim, .vs-dc-tabwrap.vs-dc-done .vs-dc-tab.vs-dc-dim { opacity: .35; }
-.vs-dc-tab:hover { background: color-mix(in oklab, var(--vs-surface) 60%, transparent); }
-.vs-dc-tab[aria-pressed="true"] { background: var(--vs-surface); }
 .vs-dc-tabname { font-family: var(--vs-mono); font-size: 12px; font-weight: 600; white-space: nowrap; }
 .vs-dc-tabstat { font-family: var(--vs-mono); font-size: 11px; color: var(--vs-muted); white-space: nowrap; }
 .vs-dc-summary { font-size: 14px; color: var(--vs-muted); margin: 0; }

@@ -133,3 +133,9 @@ export function i18n(lang = 'en') {
   const { t, plural } = window.verstat;
   return { t, plural };
 }
+
+export function pathLabels() {
+  const window = {};
+  new Function('window', readFileSync(join(ROOT, 'client', 'modules', 'paths.js'), 'utf8'))(window);
+  return window.verstat.pathLabels;
+}

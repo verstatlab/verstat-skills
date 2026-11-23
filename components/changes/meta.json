@@ -1,1 +1,1 @@
-{"deps": [], "modules": ["read"], "group": "changes", "label": "changes by layer", "diffMode": false}
+{"deps": [], "modules": ["paths", "read"], "group": "changes", "label": "changes by layer", "diffMode": false}

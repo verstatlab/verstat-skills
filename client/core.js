@@ -314,6 +314,7 @@
       goToStep: function (index) { vs.route.go(index); },
       diff: makeDiff(entry.diffMode),
       read: vs.read,
+      pathLabels: vs.pathLabels,
       kicker: function (text) { entry.kicker = text; },
     };
     return ctx;
