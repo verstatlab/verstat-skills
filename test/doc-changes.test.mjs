@@ -115,6 +115,66 @@ describe('markdown parse', () => {
 
 describe('markdown fragment', () => {
   const hunk = (pairs) => pairs.map(([kind, old, now, text]) => ({ kind, ...(old ? { old } : {}), ...(now ? { new: now } : {}), text }));
+  const startsOnOwnSide = (items, old, now) => {
+    const blocks = { old: md.parse(old), now: md.parse(now) };
+    for (const item of items) {
+      const side = item.sign === '-' ? 'old' : 'now';
+      assert.ok(blocks[side].some((b) => b.start === item.line && b.type === item.type), `${item.sign} ${item.type} ${item.line} starts no block on the ${side} side`);
+    }
+  };
+
+  test('each wrapped list item is numbered by its first line on its own side', () => {
+    const old = [
+      '## Steps', '',
+      '1. **One.** first.',
+      '2. **Two.** second.',
+      '3. **Wait.** blocks until',
+      '   there is work, or the',
+      '   wait times out.',
+      '4. **End.** stop.', '',
+      '### Limits', '',
+      'Tail.',
+    ];
+    const now = [
+      '## Steps', '',
+      '1. **One.** first.',
+      '2. **Two.** second.',
+      '3. **Wait.** blocks until',
+      '   there is work, and only',
+      '   then it ends.',
+      '4. **End.** stop. Besides',
+      '   stamping the end, it',
+      '   releases every claim.', '',
+      '### Limits', '',
+      'Tail.',
+    ];
+    const items = plain(md.fragment(old, now, hunk([
+      ['context', 3, 3, old[2]], ['context', 4, 4, old[3]], ['context', 5, 5, old[4]],
+      ['del', 6, 0, old[5]], ['del', 7, 0, old[6]], ['del', 8, 0, old[7]],
+      ['add', 0, 6, now[5]], ['add', 0, 7, now[6]], ['add', 0, 8, now[7]], ['add', 0, 9, now[8]], ['add', 0, 10, now[9]],
+      ['context', 9, 11, ''], ['context', 10, 12, '### Limits'], ['context', 11, 13, ''],
+    ])));
+    assert.deepEqual(items.map((i) => [i.type, i.sign, i.num || null, i.line]), [
+      ['h2', ' ', null, 1], ['oli', ' ', '1', 3], ['oli', ' ', '2', 4],
+      ['oli', '-', '3', 5], ['oli', '-', '4', 8], ['oli', '+', '3', 5], ['oli', '+', '4', 8],
+      ['h3', ' ', null, 12],
+    ]);
+    startsOnOwnSide(items, old, now);
+  });
+
+  test('a list item after one that grew is numbered from the new side when added and the old side when removed', () => {
+    const old = ['1. **Wait.** blocks', '   until work.', '2. **End.** stop.', '', 'Tail.'];
+    const now = ['1. **Wait.** blocks', '   until work, and', '   then ends.', '2. **End.** stop now.', '', 'Tail.'];
+    const items = plain(md.fragment(old, now, hunk([
+      ['context', 1, 1, old[0]], ['del', 2, 0, old[1]], ['del', 3, 0, old[2]],
+      ['add', 0, 2, now[1]], ['add', 0, 3, now[2]], ['add', 0, 4, now[3]],
+      ['context', 4, 5, ''], ['context', 5, 6, 'Tail.'],
+    ])));
+    assert.deepEqual(items.map((i) => [i.type, i.sign, i.num || null, i.line]), [
+      ['oli', '-', '1', 1], ['oli', '-', '2', 3], ['oli', '+', '1', 1], ['oli', '+', '2', 4], ['p', ' ', null, 6],
+    ]);
+    startsOnOwnSide(items, old, now);
+  });
 
   test('a changed paragraph shows the old one removed, then the new one added, under its section heading', () => {
     const old = ['## Section', '', 'Old text.', '', 'Tail.'];
@@ -151,6 +211,14 @@ describe('markdown fragment', () => {
     assert.deepEqual(items.map((i) => i.type), ['table', 'table']);
     assert.deepEqual(items[0].rows.map((r) => r.cells), [['A', 'B'], ['1', '2'], ['3', '4']]);
     assert.deepEqual(items[1].rows.filter((r) => r.head).map((r) => r.cells), [['X', 'Y', 'Z']]);
+  });
+});
+
+describe('markdown css', () => {
+  test('list, quote and diff-row grids align their items on the baseline', () => {
+    const css = readFileSync(join(ROOT, 'client', 'modules', 'markdown.css'), 'utf8');
+    assert.match(css, /\.vs-md-row \{[^}]*align-items: baseline/);
+    assert.match(css, /\.vs-md-li, \.vs-md-oli, \.vs-md-quote \{[^}]*align-items: baseline/);
   });
 });
 

@@ -98,7 +98,7 @@
 .vs-md-h3 { font-size: 15.5px; }
 .vs-md-h4 { font-size: 14.5px; }
 .vs-md-row + .vs-md-row .vs-md-h1, .vs-md-row + .vs-md-row .vs-md-h2, .vs-md-row + .vs-md-row .vs-md-h3, .vs-md-row + .vs-md-row .vs-md-h4 { margin-top: 8px; }
-.vs-md-li, .vs-md-oli, .vs-md-quote { display: grid; grid-template-columns: 18px minmax(0, 1fr); }
+.vs-md-li, .vs-md-oli, .vs-md-quote { display: grid; grid-template-columns: 18px minmax(0, 1fr); align-items: baseline; }
 .vs-md-oli .vs-md-bullet { font-family: var(--vs-mono); font-size: 12.5px; }
 .vs-md-quote { font-style: italic; }
 .vs-md-pre { font-family: var(--vs-mono); font-size: 12.5px; white-space: pre-wrap; background: var(--vs-code-bg); border-radius: 0; color: var(--vs-ink); }
