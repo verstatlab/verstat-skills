@@ -98,6 +98,8 @@ examples/                         the example pages and their index, published t
 examples/src/<name>/              what each example is built from: page.json, patches/ (showcase)
 scripts/examples.mjs              rebuilds the examples (npm run examples)
 .github/workflows/pages.yml       publishes examples/*.html to GitHub Pages on push to main
+.github/workflows/ci.yml          runs npm test and plugin validation on pull requests and main
+CONTRIBUTING.md                   how to contribute: issues, pull requests, CI
 ```
 
 ## Design decisions
@@ -114,6 +116,7 @@ scripts/examples.mjs              rebuilds the examples (npm run examples)
 - [docs/design.md](docs/design.md) — what the skills do and why: blocks, page model, validation.
 - [docs/engine.md](docs/engine.md) — the engine: commands, anchors, diff facts, build output.
 - [docs/client.md](docs/client.md) — the page client and what a block's render can use.
+- [CONTRIBUTING.md](CONTRIBUTING.md) — how to contribute: issues, pull requests, CI.
 
 ## License
 
