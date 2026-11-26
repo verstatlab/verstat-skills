@@ -358,6 +358,12 @@ describe('data and reliability blocks', () => {
     assert.match(css, /\.vs-table-fit \.vs-table-code \.vs-chip \{[^}]*white-space: nowrap/);
   });
 
+  test('table rows and the header row share a 12px side inset, so a tinted row keeps its content off the fill edge', () => {
+    const css = readFileSync(join(ROOT, 'client', 'verstat.css'), 'utf8');
+    assert.match(css, /\.vs-table-row \{[^}]*padding: 12px;/);
+    assert.match(css, /\.vs-table-head \{ padding: 0 12px; \}/);
+  });
+
   test('the risk summary declines each severity in the uk locale', () => {
     const risks = (n) => Array.from({ length: n }, (_, i) => ({ id: `r${i}`, severity: 'high', title: 't', consequence: 'c' }));
     const sum = (n, lang) => loadRender('risks').fn({ id: 'rk', type: 'risks', risks: risks(n) }, stubCtx(lang)).byClass('vs-risk-sum')[0].text;
